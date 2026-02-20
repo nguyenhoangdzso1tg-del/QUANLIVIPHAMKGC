@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Lịch vi phạm</title>
+    <!-- Kết nối file CSS -->
+    <link rel="stylesheet" href="style.css">
+    
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<body>
+    
+    <!-- Khu vực hiển thị lịch -->
+     <a href="index.html" class="btn">Quay lại nhập vi phạm</a>
+    <div id="calendar">
+        <div id="calendar-header">
+            <button id="prevMonth">&lt;</button>
+            <span id="monthYear"></span>
+            <button id="nextMonth">&gt;</button>
+        </div>
+
+        <!-- Bảng lịch: 7 cột CN, T2...T7 -->
+        <table class="calendar-table">
+            <thead>
+                <tr>
+                    <th>CN</th><th>T2</th><th>T3</th><th>T4</th>
+                    <th>T5</th><th>T6</th><th>T7</th>
+                </tr>
+            </thead>
+            <tbody id="calendar-body">
+                <!-- JavaScript sẽ sinh các ô ngày tại đây -->
+            </tbody>
+        <table>
+
+    </div>
+
+    <!-- Bảng chi tiết vi phạm -->
+    <div id="details">
+        <h3 id="detailTitle">Chi tiết vi phạm</h3>
+        <div id="selectedDaysLabel" style="margin-bottom:10px; font-style: italic;">
+  Các ngày đã chọn: —
+</div>
+
+ <p id="totalCount"></p>
+        <table id="violationTable" class="violation-table">
+
+            <thead>
+                <tr>
+                    <th>STT</th>
+<th>Tên</th>
+<th>Lớp</th>
+<th>Khoá</th>
+<th>Khoa</th>
+<th>Ngày</th>
+<th>Mang dép</th>
+<th>Đi trễ</th>
+<th>Hút thuốc</th>
+<th>Sai đồng phục</th>
+<th>Không thẻ SV</th>
+<th>Tổng</th>
+
+                </tr>
+            </thead>
+            <tbody id="calendarViolationList">
+
+                <!-- Dữ liệu vi phạm được chèn tại đây -->
+            </tbody>
+        </table>
+ <div class="export-wrapper">
+    <button id="exportExcelBtn" class="btn-export">Xuất Excel</button>
+</div>
+
+
+
+       
+    </div>
+
+    <!-- Nối đến file JavaScript chứa logic -->
+    <script type="module" src="script.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,224 @@
+.btn{margin-top:8px;padding:10px 25px;background:#ffee00;
+    color:#000000;
+    border-radius:10px;
+    text-decoration:none;
+    font-weight:600;
+    display:inline-block
+    
+    
+}
+/* style.css */
+/* Khung lịch */
+#calendar {
+    width: 100%;
+    max-width: 600px;
+    margin: 20px auto;
+}
+#calendar-header {
+    text-align: center;
+    margin-bottom: 10px;
+}
+#calendar-header button {
+    margin: 0 10px;
+    padding: 5px 10px;
+}
+#calendar-header span {
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+/* Bảng lịch */
+table.calendar-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+table.calendar-table th, table.calendar-table td {
+    border: 1px solid #ccc;
+    width: 14.28%;   /* 100% chia 7 cột */
+    height: 80px;
+    text-align: right;
+    vertical-align: top;
+    padding: 5px;
+    position: relative;
+}
+table.calendar-table th {
+    background: #f0f0f0;
+}
+table.calendar-table td:hover {
+    background: #fafafa;
+    cursor: pointer;
+}
+table.calendar-table td.inactive {
+    background: #f9f9f9;
+    color: #ccc;
+    cursor: default;
+}
+table.calendar-table td.active {
+    background: #e0e0ff; /* ô được chọn */
+}
+
+/* Dropdown tuần */
+#weekFilter {
+    margin: 10px auto;
+    display: block;
+}
+
+/* Chi tiết vi phạm */
+#details {
+    width: 90%;
+    max-width: none;
+    margin: 20px auto;
+}
+#details h3 {
+    margin-bottom: 10px;
+}
+#violationTable {
+    width: 100%;        /* full màn hình */
+    margin: 0 auto;
+}
+.violation-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+table#violationTable td:nth-child(2) {
+    text-align: left;
+}
+
+table#violationTable th, table#violationTable td {
+    border: 1px solid #ccc;
+    padding: 5px;
+    text-align: left;
+}
+table#violationTable th {
+    text-align: center;
+}
+
+table#violationTable td {
+    text-align: center;
+}
+
+table#violationTable th {
+    background: #ddd;
+}
+
+#calendar-body td.active {
+  background-color: #f7bfed;
+  color: #000000;
+  font-weight: bold;
+}
+.violation-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 14px;
+}
+.btn-calendar {
+    display: inline-block;
+    margin-top: 15px;
+    padding: 12px 28px;
+    background-color: #f08548;
+    color: #ffffff;
+    font-size: 21px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 3px;
+    transition: 0.3s;
+}
+
+.btn-back {
+    background-color: #3b82f6; /* xanh */
+    color: white;
+}
+
+.btn-send {
+    background-color: #16a34a; /* xanh lá */
+    color: white;
+}
+
+.btn-yellow {
+    background-color: #ffee00;
+    color: #000;
+}
+
+.btn-calendar {
+    background-color: #f08548;
+    color: white;
+}
+
+
+/* NÚT CHUẨN – dùng cho mọi button */
+.btn-base {
+    display: inline-block;
+    width: 100%;
+    padding: 12px 28px;
+    margin-top: 8px;
+
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+
+    border-radius: 10px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+
+    transition: 
+        background-color 0.2s ease,
+        transform 0.1s ease,
+        box-shadow 0.1s ease;
+}
+
+/* HIỆU ỨNG HOVER – GIỐNG btn-calendar */
+.btn-base:hover {
+    filter: brightness(90%);
+    transform: translateY(-2px);
+}
+
+/* HIỆU ỨNG KHI BẤM */
+.btn-base:active {
+    filter: brightness(75%);
+    transform: translateY(0);
+    box-shadow: inset 0 3px 6px rgba(0,0,0,0.2);
+}
+
+.title {
+  position: sticky;
+  top: 0;
+  background: rgba(22, 7, 238, 0);      /* rất quan trọng */
+  z-index: 1000;          /* để không bị che */
+  padding: 12px 0;
+  text-align: center;
+  font-weight: bold;
+  border-bottom: 1px solid #1441d400;
+}
+.title {
+  position: sticky;
+  top: 0;
+  background: #008cff00;
+  font-size: 20px;
+  letter-spacing: 1px;
+}
+.btn-export {
+    margin-top: 15px;
+    padding: 10px 22px;
+    background-color: #2ecc71;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-export:hover {
+    background-color: #27ae60;
+}
+.export-wrapper {
+    display: flex;
+    justify-content: flex-end; /* 👈 dồn sang phải */
+    margin-top: 10px;
+}

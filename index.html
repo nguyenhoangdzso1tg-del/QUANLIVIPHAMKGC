@@ -1,0 +1,1938 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Hệ thống quản lý vi phạm</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+ function renderViolationTable() {
+  const table = document.getElementById("violationTable");
+  table.innerHTML = "";
+  violationList.forEach((v, index) => {
+    const tr = document.createElement("tr");
+    tr.className = "border-t";
+
+ tr.innerHTML = `
+  <td class="p-2 font-medium">${v["Mã SV"]}</td>
+  <td class="p-2">${v["Họ tên"]}</td>
+  <td class="p-2">${v["Lớp"]}</td>
+  <td class="p-2">${v["Khóa"]}</td>
+  <td class="p-2">${v["Khoa"]}</td>
+  <td class="p-2">${v["Ngày"]}</td>
+  <td class="p-2">${v["Buổi"]}</td>
+  <td class="p-2">${v["Vi phạm"]}</td>
+  <td class="p-2 text-center">
+    <button
+      class="bg-red-500 text-white px-2 py-1 rounded"
+      onclick="deleteViolation(${index})">
+      X
+    </button>
+  </td>
+`;
+
+    table.appendChild(tr);
+  });
+}
+function deleteViolation(index) {
+  console.log("Xóa index:", index); // ⭐ test
+
+  if (!confirm("Bạn có chắc muốn xóa không?")) return;
+
+  violationList.splice(index, 1);
+
+  saveData();
+  renderViolationTable();
+}
+</script>
+<script></script>
+<script>function renderSinhVienList(list) {
+  const content = document.getElementById("content");
+
+  // Xóa danh sách cũ (chỉ giữ ô tìm kiếm)
+  content.querySelectorAll("button").forEach(b => b.remove());
+
+  list.forEach(sv => {
+    const btn = document.createElement("button");
+    btn.className = "bg-white p-4 rounded shadow hover:bg-blue-100";
+    btn.innerText = sv;
+    btn.onclick = () => {
+      history.push(() => showSinhVien(selected.khoa, selected.khoaHoc, selected.lop));
+      selected.sv = sv;
+      showViPham();
+    };
+    content.appendChild(btn);
+  });
+}
+function searchSinhVien(khoa, khoaHoc, lop) {
+  const keyword = document.getElementById("searchSV").value.toLowerCase();
+
+  const list = data[khoa][khoaHoc][lop].filter(sv =>
+    sv.toLowerCase().includes(keyword)
+  );
+
+  renderSinhVienList(list);
+}
+
+ </script>
+ <script> function updateStatus() {
+  document.getElementById("status").innerText =
+    `Khoa: ${selected.khoa || "—"} | ` +
+    `Khóa: ${selected.khoaHoc || "—"} | ` +
+    `Lớp: ${selected.lop || "—"}`;
+}
+</script>
+  <!-- SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+
+<div id="app" class="hidden flex min-h-screen">
+
+<!-- SIDEBAR -->
+<div class="w-64 bg-blue-700 text-white p-4">
+  <h1 class="title">QUẢN LÝ VI PHẠM</h1>
+
+
+  <button onclick="goBack()" class="btn-base btn-back">
+    Quay lại
+  </button>
+
+ <button onclick="exportExcel()" class="btn-base btn-send">
+    Gửi
+  </button>
+  
+<a href="danhsach.html" class="btn-base btn-yellow">
+  Xem danh sách nhập</a>
+<a href="calendar.html" class="btn-base btn-calendar">
+    Xem lịch vi phạm
+</a>
+
+</div>
+
+<!-- MAIN -->
+<div class="flex-1 p-6">
+  <div class="mb-4 relative">
+  <input
+    type="text"
+    id="globalSearch"
+    placeholder="🔍 Tìm sinh viên (tên hoặc mã SV)..."
+    class="w-full p-2 border rounded"
+    oninput="globalSearchSV()"
+  >
+
+  <div
+    id="globalResult"
+    class="absolute bg-white border w-full rounded shadow z-20 hidden">
+  </div>
+</div>
+
+    <h2 class="text-xl font-bold mt-8 mb-2">Danh sách vi phạm </h2>
+
+<table class="w-full bg-white rounded shadow text-sm">
+<thead class="bg-gray-200">
+  <tr>
+    <th class="p-2">Mã SV</th>
+    <th class="p-2">Họ tên</th>
+    <th class="p-2">Lớp</th>
+    <th class="p-2">Khóa</th>
+    <th class="p-2">Khoa</th>
+    <th class="p-2">Ngày</th>
+    <th class="p-2">Buổi</th>
+    <th class="p-2">Vi phạm</th>
+    <th class="p-2">Xóa</th>
+  </tr>
+</thead>
+
+  <tbody id="violationTable"></tbody>
+</table>
+<div id="status"
+     class="mb-3 text-sm text-gray-700 font-medium bg-blue-50 p-2 rounded">
+  Khoa: — | Khóa: — | Lớp: —
+</div>
+  <h1 class="text-2xl font-bold mb-4" id="title">Chọn khoa</h1>
+  <div id="content" class="grid grid-cols-3 gap-4"></div>
+</div>
+</div>
+<style>
+.btn-custom{background:#16a34a!important}
+</style>
+<script type="module">
+import { auth } from "./firebase.js";
+import { onAuthStateChanged } from
+  "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+const app = document.getElementById("app");
+
+onAuthStateChanged(auth, user => {
+  if (!user) {
+    window.location.href = "login.html";
+  } else {
+    app.classList.remove("hidden"); // ✅ chỉ hiện khi đã login
+  }
+});
+</script>
+
+
+<script>
+const data = {
+  "CÔNG NGHỆ THÔNG TIN": {
+    "CĐ9+K6":{
+     "Công nghệ thông tin 1": [
+  { maSV: "CK25OT3124", tenSV: "Phạm Quang Long" },
+  { maSV: "TH25CN3101", tenSV: "Nguyễn Trúc Anh" },
+  { maSV: "TH25CN3102", tenSV: "Nguyễn Thị Kim Anh" },
+  { maSV: "TH25CN3103", tenSV: "Đỗ Tuấn Anh" },
+  { maSV: "TH25CN3104", tenSV: "Nguyễn Gia Bảo" },
+  { maSV: "TH25CN3105", tenSV: "Nguyễn Thị Huỳnh Châu" },
+  { maSV: "TH25CN3107", tenSV: "Lê Khải Đăng" },
+  { maSV: "TH25CN3108", tenSV: "Dương Hồng Đức" },
+  { maSV: "TH25CN3109", tenSV: "Trần Nguyễn Hoàng Duy" },
+  { maSV: "TH25CN3110", tenSV: "Danh Thanh Giàu" },
+  { maSV: "TH25CN3111", tenSV: "Võ Vũ Hiền" },
+  { maSV: "TH25CN3112", tenSV: "Huỳnh Trọng Hiếu" },
+  { maSV: "TH25CN3113", tenSV: "Trương Mạnh Hùng" },
+  { maSV: "TH25CN3114", tenSV: "Nguyễn Nhật Huy" },
+  { maSV: "TH25CN3115", tenSV: "Lê Phước Huy" },
+  { maSV: "TH25CN3116", tenSV: "Lưu Hiếu Khang" },
+  { maSV: "TH25CN3117", tenSV: "Phan Minh Khang" },
+  { maSV: "TH25CN3118", tenSV: "Trần Kim Khánh" },
+  { maSV: "TH25CN3119", tenSV: "Trương Quốc Khánh" },
+  { maSV: "TH25CN3120", tenSV: "Nguyễn Trang Nhã Kỳ" },
+  { maSV: "TH25CN3121", tenSV: "Huỳnh Trường Kỳ" },
+  { maSV: "TH25CN3122", tenSV: "Trần Thùy Lâm" },
+  { maSV: "TH25CN3123", tenSV: "Lê Hữu Lộc" },
+  { maSV: "TH25CN3124", tenSV: "Lâm Tấn Lộc" },
+  { maSV: "TH25CN3125", tenSV: "Trần Hạo Nam" },
+  { maSV: "TH25CN3126", tenSV: "Đào Danh Hồng Nam" },
+  { maSV: "TH25CN3127", tenSV: "Võ Minh Nghĩa" },
+  { maSV: "TH25CN3128", tenSV: "Nguyễn Thanh Bảo Ngọc" },
+  { maSV: "TH25CN3130", tenSV: "Nguyễn Thị Huỳnh Như" },
+  { maSV: "TH25CN3131", tenSV: "Lê Thành Phát" },
+  { maSV: "TH25CN3132", tenSV: "Nguyễn Thanh Phong" },
+  { maSV: "TH25CN3133", tenSV: "Hà Thanh Phong" },
+  { maSV: "TH25CN3134", tenSV: "Huỳnh Minh Phương" },
+  { maSV: "TH25CN3135", tenSV: "Trần Nhựt Tân" },
+  { maSV: "TH25CN3136", tenSV: "Phan Nhật Thái" },
+  { maSV: "TH25CN3137", tenSV: "Võ Chí Thiện" },
+  { maSV: "TH25CN3138", tenSV: "Trần Thị Anh Thư" },
+  { maSV: "TH25CN3139", tenSV: "Liêng Hiệp Trọng" },
+  { maSV: "TH25CN3140", tenSV: "Danh Duy Tú" },
+  { maSV: "TH25CN3141", tenSV: "Hà Giang Cẩm Tú" },
+  { maSV: "TH25CN3142", tenSV: "Nguyễn Thị Thuý Vi" },
+  { maSV: "TH25CN3143", tenSV: "Nguyễn Hoàng Vinh" },
+  { maSV: "TH25CN3144", tenSV: "Trần Văn Vũ" },
+  { maSV: "TH25CN3145", tenSV: "Huỳnh Đỗ Kiều Vy" },
+  { maSV: "TH25CN3146", tenSV: "Đặng Gia Bảo" },
+  { maSV: "TH25CN3148", tenSV: "Nguyễn Thanh Phúc" },
+  { maSV: "TH25CN3149", tenSV: "Nguyễn Hồng Đăng Khoa" },
+  { maSV: "TH25CN3150", tenSV: "Nguyễn Hoàng Hải Đăng" },
+  { maSV: "TH25CN3217", tenSV: "Ong Ngọc Tín" },
+  { maSV: "TH25CN3219", tenSV: "Nguyễn Thành Trung" },
+  { maSV: "TH25CN3226", tenSV: "Trần Đoàn Dược" }
+],
+"Công nghệ thông tin 2": [
+  { maSV: "CK25CK3109", tenSV: "Nguyễn Nhựt Huy" },
+  { maSV: "DL25HD3114", tenSV: "Nguyễn Huỳnh Diệu Ngân" },
+  { maSV: "KT25QT3102", tenSV: "Nguyễn Chí Đức" },
+  { maSV: "KT25QT3111", tenSV: "Trần Gia Hưởng" },
+  { maSV: "TH25CN3147", tenSV: "Lê Nguyễn Trung Hiếu" },
+  { maSV: "TH25CN3201", tenSV: "Đặng Việt Anh" },
+  { maSV: "TH25CN3202", tenSV: "Lê Hoàng Bảo" },
+  { maSV: "TH25CN3204", tenSV: "Nguyễn Thiên Hạo" },
+  { maSV: "TH25CN3205", tenSV: "Trần Khánh Hoàng" },
+  { maSV: "TH25CN3206", tenSV: "Phan Thanh Huy" },
+  { maSV: "TH25CN3207", tenSV: "Lê Quốc Huy" },
+  { maSV: "TH25CN3208", tenSV: "Lê Nhựt Khang" },
+  { maSV: "TH25CN3209", tenSV: "Nguyễn Quốc Ký" },
+  { maSV: "TH25CN3210", tenSV: "Trần Lĩnh" },
+  { maSV: "TH25CN3211", tenSV: "Lê Bảo Nam" },
+  { maSV: "TH25CN3212", tenSV: "Bùi Thảo Nguyên" },
+  { maSV: "TH25CN3213", tenSV: "Nguyễn Tài Phát" },
+  { maSV: "TH25CN3214", tenSV: "Bùi Thanh Sang" },
+  { maSV: "TH25CN3215", tenSV: "Trương Thành Tâm" },
+  { maSV: "TH25CN3216", tenSV: "Nguyễn Lê Trường Thịnh" },
+  { maSV: "TH25CN3220", tenSV: "Trần Thanh Cẩm Tú" },
+  { maSV: "TH25CN3221", tenSV: "Nguyễn Hoài Vân" },
+  { maSV: "TH25CN3222", tenSV: "Nguyễn Hoàng Việt" },
+  { maSV: "TH25CN3223", tenSV: "Võ Phan Như Ý" },
+  { maSV: "TH25CN3224", tenSV: "Võ Trọng Hiếu" },
+  { maSV: "TH25CN3225", tenSV: "Nguyễn Lư Kha Hân" },
+  { maSV: "TH25CN3227", tenSV: "Ngô Nhật Tiến" },
+  { maSV: "TH25CN3228", tenSV: "Đào Minh Trí" }
+]
+
+    },
+    "CĐ9+K5": {
+      "Tin học ứng dụng 3": [
+        { maSV: "TH24TH3241", tenSV: "Nguyễn Minh Triêu" },
+        { maSV: "TH24TH3215", tenSV: "Nguyễn Hoàng" },
+        { maSV: "TH24TH3106", tenSV: "Nguyễn Kim Châu" },
+        { maSV: "TH24TH3301", tenSV: "Bùi Công Thọ Anh" },
+        { maSV: "TH24TH3302", tenSV: "Nguyễn Huỳnh Anh" },
+        { maSV: "TH24TH3305", tenSV: "Dương Bảo Chân" },
+        { maSV: "TH24TH3306", tenSV: "Nguyễn Tấn Chuyển" },
+        { maSV: "TH24TH3307", tenSV: "Trần Thành Đạt" },
+        { maSV: "TH24TH3308", tenSV: "Thị Diền" },
+        { maSV: "TH24TH3310", tenSV: "Lê Thị Duyên" },
+        { maSV: "TH24TH3311", tenSV: "Phan Văn Hải" },
+        { maSV: "TH24TH3312", tenSV: "Lữ Gia Hào" },
+        { maSV: "TH24TH3313", tenSV: "Bùi Chí Hiếu" },
+        { maSV: "TH24TH3314", tenSV: "Nguyễn Thị Thu Hoài" },
+        { maSV: "TH24TH3315", tenSV: "Nguyễn Gia Huy" },
+        { maSV: "TH24TH3316", tenSV: "Nguyễn Lê Quang Huy" },
+        { maSV: "TH24TH3317", tenSV: "Phạm Đoàn Gia Khang" },
+        { maSV: "TH24TH3319", tenSV: "Nguyễn Lý Minh Khôi" },
+        { maSV: "TH24TH3320", tenSV: "Hà Gia Lạc" },
+        { maSV: "TH24TH3324", tenSV: "Nguyễn Hạo Nam" },
+        { maSV: "TH24TH3325", tenSV: "Hồ Bảo Ngọc" },
+        { maSV: "TH24TH3326", tenSV: "Đinh Trọng Nhân" },
+        { maSV: "TH24TH3327", tenSV: "Nguyễn Thị Yến Nhi" },
+        { maSV: "TH24TH3328", tenSV: "Huỳnh Ngọc Như" },
+        { maSV: "TH24TH3330", tenSV: "Nguyễn Thái Phát" },
+        { maSV: "TH24TH3331", tenSV: "Nguyễn Phong Phú" },
+        { maSV: "TH24TH3333", tenSV: "Nguyễn Tri Quyên" },
+        { maSV: "TH24TH3336", tenSV: "Huỳnh Tấn Thịnh" },
+        { maSV: "TH24TH3337", tenSV: "Nguyễn Thị Bích Thùy" },
+        { maSV: "TH24TH3339", tenSV: "Nguyễn Minh Toàn" },
+        { maSV: "TH24TH3340", tenSV: "Võ Nguyễn Thu Trân" },
+        { maSV: "TH24TH3342", tenSV: "Lê Nhựt Trí Vĩ" },
+        { maSV: "TH24TH3344", tenSV: "Trương Lê Ái Vy" },
+        { maSV: "TH24TH3347", tenSV: "Kha Nguyễn Tấn Lộc" },
+        { maSV: "TH24TH3348", tenSV: "Lê Kiệt Luân" }
+      ],
+          "Tin học ứng dụng 2": [
+      { maSV: "TH24TH3114", tenSV: "Trương Trung Hiếu" },
+      { maSV: "TH24TH3202", tenSV: "Trương Quốc Anh" },
+      { maSV: "TH24TH3203", tenSV: "Ngô Thị Ngọc Anh" },
+      { maSV: "TH24TH3206", tenSV: "Huỳnh Chi" },
+      { maSV: "TH24TH3210", tenSV: "Trương Nguyễn Dương" },
+      { maSV: "TH24TH3211", tenSV: "Phan Chí Hải" },
+      { maSV: "TH24TH3212", tenSV: "Ngô Quốc Hào" },
+      { maSV: "TH24TH3213", tenSV: "Trần Minh Hiếu" },
+      { maSV: "TH24TH3216", tenSV: "Dương Quốc Huy" },
+      { maSV: "TH24TH3217", tenSV: "Hồ Hoàng Khang" },
+      { maSV: "TH24TH3220", tenSV: "Tân Diễm Kiều" },
+      { maSV: "TH24TH3221", tenSV: "Nguyễn Thị Diễm Lê" },
+      { maSV: "TH24TH3222", tenSV: "Ngô Phước Lộc" },
+      { maSV: "TH24TH3223", tenSV: "Nguyễn Trúc Ly" },
+      { maSV: "TH24TH3225", tenSV: "Nguyễn Trần Kim Ngọc" },
+      { maSV: "TH24TH3226", tenSV: "Lê Trọng Nhân" },
+      { maSV: "TH24TH3227", tenSV: "Lê Ngọc Uyển Nhi" },
+      { maSV: "TH24TH3228", tenSV: "Lạc Thái Nhiên" },
+      { maSV: "TH24TH3229", tenSV: "Trương Nhật Phát" },
+      { maSV: "TH24TH3230", tenSV: "Châu Thuận Phát" },
+      { maSV: "TH24TH3232", tenSV: "Lê Trọng Phúc" },
+      { maSV: "TH24TH3233", tenSV: "Nguyễn Hoàng Anh Quốc" },
+      { maSV: "TH24TH3234", tenSV: "Trương Thành Tài" },
+      { maSV: "TH24TH3235", tenSV: "Đặng Hoàng Thành" },
+      { maSV: "TH24TH3236", tenSV: "Nguyễn Thịnh Thiên" },
+      { maSV: "TH24TH3238", tenSV: "Nguyễn Đức Tín" },
+      { maSV: "TH24TH3239", tenSV: "Võ Quốc Tình" },
+      { maSV: "TH24TH3242", tenSV: "Cao Ngọc Tuyền" },
+      { maSV: "TH24TH3245", tenSV: "Huỳnh Võ Như Ý" },
+      { maSV: "TH24TH3247", tenSV: "Lê Thanh Hùng" },
+      { maSV: "TH24TH3249", tenSV: "Huỳnh Yến Duy" },
+      { maSV: "TH24TH3323", tenSV: "Lê Ngọc Xuân Mới" }
+    ],
+    "Tin học ứng dụng 1": [
+      { maSV: "CK24KL3109", tenSV: "Ngô Đại Dương" },
+      { maSV: "DT24NL3206", tenSV: "Lê Minh Đạt" },
+      { maSV: "TH24TH3101", tenSV: "Diệp Hải An" },
+      { maSV: "TH24TH3102", tenSV: "Nguyễn Hoàng Anh" },
+      { maSV: "TH24TH3103", tenSV: "Trần Đức Anh" },
+      { maSV: "TH24TH3104", tenSV: "Bùi Xuân Bắc" },
+      { maSV: "TH24TH3107", tenSV: "Đỗ Hải Đăng" },
+      { maSV: "TH24TH3109", tenSV: "Phan Ngọc Thúy Diệu" },
+      { maSV: "TH24TH3111", tenSV: "Nguyễn Trường Giang" },
+      { maSV: "TH24TH3113", tenSV: "Nguyễn Bùi Vinh Hiển" },
+      { maSV: "TH24TH3115", tenSV: "Trần Minh Hoàng" },
+      { maSV: "TH24TH3116", tenSV: "Huỳnh Gia Huy" },
+      { maSV: "TH24TH3117", tenSV: "Nguyễn Duy Khang" },
+      { maSV: "TH24TH3118", tenSV: "Phạm Mai Gia Khang" },
+      { maSV: "TH24TH3119", tenSV: "Nguyễn Quốc Khánh" },
+      { maSV: "TH24TH3120", tenSV: "Hà Anh Kiệt" },
+      { maSV: "TH24TH3121", tenSV: "Nguyễn Ngọc Tường Lam" },
+      { maSV: "TH24TH3124", tenSV: "Phan Kiều Diễm My" },
+      { maSV: "TH24TH3125", tenSV: "Trần Nghiêm" },
+      { maSV: "TH24TH3126", tenSV: "Nguyễn Bích Ngọc" },
+      { maSV: "TH24TH3127", tenSV: "Danh Nhân" },
+      { maSV: "TH24TH3128", tenSV: "Nguyễn Trần Thảo Nhi" },
+      { maSV: "TH24TH3129", tenSV: "Nguyễn Triệu Như" },
+      { maSV: "TH24TH3130", tenSV: "Châu Tấn Phát" },
+      { maSV: "TH24TH3131", tenSV: "Lâu Thành Phát" },
+      { maSV: "TH24TH3132", tenSV: "Nguyễn Thanh Phú" },
+      { maSV: "TH24TH3133", tenSV: "Trần Minh Phước" },
+      { maSV: "TH24TH3134", tenSV: "Chau Sa Râm" },
+      { maSV: "TH24TH3138", tenSV: "Thị Tiền" },
+      { maSV: "TH24TH3140", tenSV: "Danh Trịnh Ngọc Trâm" },
+      { maSV: "TH24TH3141", tenSV: "Trần Thị Bảo Trân" },
+      { maSV: "TH24TH3142", tenSV: "Võ Thành Trọng" },
+      { maSV: "TH24TH3143", tenSV: "Trịnh Đình Việt" },
+      { maSV: "TH24TH3146", tenSV: "Vũ Mạnh Anh Khoa" },
+      { maSV: "TH24TH3147", tenSV: "Vương Chí Nguyên" },
+      { maSV: "TH24TH3148", tenSV: "Trần Duy Khánh" },
+      { maSV: "TH24TH3149", tenSV: "Trần Nguyễn Dỉ" },
+      { maSV: "TH24TH3243", tenSV: "Từ Ngọc Thanh Vy" },
+      { maSV: "TH24TH3335", tenSV: "Nguyễn Hương Thảo" }
+    ]
+    },
+      "CĐ9+K4": {
+    "Tin học ứng dụng 2": [
+      { maSV: "CK23OT3136", tenSV: "Lê Đình Nam" },
+      { maSV: "DL23KS3112", tenSV: "Lê Thị Nữ" },
+      { maSV: "TH23TH3133", tenSV: "Trương Minh Nam" },
+      { maSV: "TH23TH3201", tenSV: "Tạ Thiên Nam" },
+      { maSV: "TH23TH3203", tenSV: "Nguyễn Hoài Nam" },
+      { maSV: "TH23TH3206", tenSV: "Nguyễn Ngọc Ánh" },
+      { maSV: "TH23TH3207", tenSV: "Lê Huỳnh" },
+      { maSV: "TH23TH3210", tenSV: "Nguyễn Thành Nam" },
+      { maSV: "TH23TH3215", tenSV: "Nguyễn Phúc Nam" },
+      { maSV: "TH23TH3216", tenSV: "Lê Hoàng Nam" },
+      { maSV: "TH23TH3217", tenSV: "Tăng Chấn" },
+      { maSV: "TH23TH3218", tenSV: "Hoàng Bảo" },
+      { maSV: "TH23TH3221", tenSV: "Nguyễn Thị Huỳnh" },
+      { maSV: "TH23TH3222", tenSV: "Nguyễn Đức Nam" },
+      { maSV: "TH23TH3223", tenSV: "Trần Tấn Nam" },
+      { maSV: "TH23TH3224", tenSV: "Phan Thanh Nam" },
+      { maSV: "TH23TH3225", tenSV: "Lê Ngô Minh Nam" },
+      { maSV: "TH23TH3229", tenSV: "Phạm Ngọc Nam" },
+      { maSV: "TH23TH3232", tenSV: "Phạm Trí Nam" },
+      { maSV: "TH23TH3233", tenSV: "Nguyễn Ngọc Minh" },
+      { maSV: "TH23TH3234", tenSV: "Lý Văn Nam" },
+      { maSV: "TH23TH3235", tenSV: "Nguyễn Phú Nam" },
+      { maSV: "TH23TH3237", tenSV: "Lữ Thanh Nam" },
+      { maSV: "TH23TH3238", tenSV: "Nguyễn Các" },
+      { maSV: "TH23TH3239", tenSV: "Đinh Kiến Nam" },
+      { maSV: "TH23TH3240", tenSV: "Phan Thị Tường" },
+      { maSV: "TH23TH3241", tenSV: "Chiêm Hà Thúy" },
+      { maSV: "TH23TH3245", tenSV: "Nguyễn Danh Nam" },
+      { maSV: "TH23TH3304", tenSV: "Huỳnh Võ Gia Nam" },
+      { maSV: "TH23TH3307", tenSV: "Hồ Tuấn Nam" },
+      { maSV: "TH23TH3309", tenSV: "Danh Trùng Nam" },
+      { maSV: "TH23TH3313", tenSV: "Võ Văn Nam" },
+      { maSV: "TH23TH3321", tenSV: "Nguyễn Trương Bảo Nam" },
+      { maSV: "TH23TH3328", tenSV: "Trần Minh Nam" },
+      { maSV: "TH23TH3329", tenSV: "Phan Thanh Nam" },
+      { maSV: "TH23TH3333", tenSV: "Nguyễn Hữu Khánh Nam" },
+      { maSV: "TH23TH3334", tenSV: "Nguyễn Đăng Nam" },
+      { maSV: "TH23TH3337", tenSV: "Tô Phú Nam" },
+      { maSV: "TH23TH3340", tenSV: "Mai Phúc Nam" },
+      { maSV: "TH23TH3341", tenSV: "Thị Anh" }
+    ],
+    "Tin học ứng dụng 1": [
+  { maSV: "CK23KL3116", tenSV: "Dương Thế Vĩ" },
+  { maSV: "TH23TH3101", tenSV: "Phạm Khánh An" },
+  { maSV: "TH23TH3103", tenSV: "Nguyễn Cường Quốc Anh" },
+  { maSV: "TH23TH3104", tenSV: "Lê Quốc Bảo" },
+  { maSV: "TH23TH3105", tenSV: "Lê Văn Nhựt Chiến" },
+  { maSV: "TH23TH3106", tenSV: "Nguyễn Hoàng Dư" },
+  { maSV: "TH23TH3107", tenSV: "Nguyễn Trần Thoại Dương" },
+  { maSV: "TH23TH3108", tenSV: "Trần Huỳnh Giang" },
+  { maSV: "TH23TH3112", tenSV: "Mai Huỳnh Huy" },
+  { maSV: "TH23TH3114", tenSV: "Phan Nhật Khang" },
+  { maSV: "TH23TH3116", tenSV: "Huỳnh Gia Khiêm" },
+  { maSV: "TH23TH3117", tenSV: "Huỳnh Nhật Khiêm" },
+  { maSV: "TH23TH3118", tenSV: "Lâm Trương Đăng Khoa" },
+  { maSV: "TH23TH3122", tenSV: "Hoàng Phạm Hồng Lan" },
+  { maSV: "TH23TH3123", tenSV: "Nguyễn Bảo Linh" },
+  { maSV: "TH23TH3124", tenSV: "Lâm Tiểu Long" },
+  { maSV: "TH23TH3125", tenSV: "Chung Gia Mẫn" },
+  { maSV: "TH23TH3127", tenSV: "Tô Phương Nghi" },
+  { maSV: "TH23TH3129", tenSV: "Phạm Thị Tuyết Nhi" },
+  { maSV: "TH23TH3131", tenSV: "Lê Thành Phát" },
+  { maSV: "TH23TH3132", tenSV: "Trần Vạn Phúc" },
+  { maSV: "TH23TH3135", tenSV: "Nguyễn Chí Thanh" },
+  { maSV: "TH23TH3137", tenSV: "Trần Thị Phương Thúy" },
+  { maSV: "TH23TH3138", tenSV: "Phạm Minh Trí" },
+  { maSV: "TH23TH3139", tenSV: "Nguyễn Quốc Tuấn" },
+  { maSV: "TH23TH3140", tenSV: "Lê Huỳnh Hải Vân" },
+  { maSV: "TH23TH3141", tenSV: "Nguyễn Hoàng Vinh" },
+  { maSV: "TH23TH3145", tenSV: "Đoàn Quốc Tuấn" },
+  { maSV: "TH23TH3302", tenSV: "Lê Quốc Anh" },
+  { maSV: "TH23TH3303", tenSV: "Nguyễn Lạc Bảo Bảo" },
+  { maSV: "TH23TH3306", tenSV: "Lê Thành Đạt" },
+  { maSV: "TH23TH3311", tenSV: "Nguyễn Văn Hiền" },
+  { maSV: "TH23TH3317", tenSV: "Phan Trung Kiên" },
+  { maSV: "TH23TH3322", tenSV: "Nguyễn Thị Huỳnh Như" },
+  { maSV: "TH23TH3323", tenSV: "Đoàn Thịnh Phát" },
+  { maSV: "TH23TH3325", tenSV: "Bùi Quang Kiến Quốc" },
+  { maSV: "TH23TH3331", tenSV: "Đoàn Ngọc Vàng" }
+]
+  },
+  "CĐ K17": {
+  "Thiết kế đồ hoạ": [
+    { maSV: "KTH23DH210", tenSV: "Trương Tấn Phát" },
+    { maSV: "KTH23DH211", tenSV: "Nguyễn Ngọc Phú" },
+    { maSV: "KTH23DH212", tenSV: "Phan Hồng Phúc" },
+    { maSV: "KTH23DH213", tenSV: "Nguyễn Đức Tài" },
+    { maSV: "KTH23DH214", tenSV: "Lê Hoàng Tân" },
+    { maSV: "KTH23DH215", tenSV: "Nguyễn Minh Thiện" },
+    { maSV: "KTH23DH216", tenSV: "Trịnh Chung Tính" },
+    { maSV: "KTH23DH217", tenSV: "Phạm Minh Toàn" },
+    { maSV: "KTH23DH218", tenSV: "Đỗ Văn Toản" },
+    { maSV: "KTH23DH219", tenSV: "Nguyễn Văn Tòng" },
+    { maSV: "KTH23DH220", tenSV: "Nguyễn Quốc Trung" },
+    { maSV: "KTH23DH221", tenSV: "Trần Đỗ Thanh Vi" },
+    { maSV: "KTH23DH222", tenSV: "Danh Nguyễn Sỹ Nam" },
+    { maSV: "KTH23DH223", tenSV: "Đỗ Thiện Khiêm" },
+    { maSV: "KTH23DH224", tenSV: "Lý Kiệt" },
+    { maSV: "KTH23DH228", tenSV: "Đặng Thanh Phong" },
+    { maSV: "KTH23DH229", tenSV: "Quách Gia Tân" }
+  ],
+  
+  "Công nghệ thông tin": [
+    { maSV: "KNN23TP206", tenSV: "Lê Quốc Thiều" },
+    { maSV: "KTH23CN201", tenSV: "Lê Phước An" },
+    { maSV: "KTH23CN204", tenSV: "Nguyễn Thành Đại" },
+    { maSV: "KTH23CN206", tenSV: "Võ Minh Dĩ" },
+    { maSV: "KTH23CN207", tenSV: "Trương Hoàng Dĩ" },
+    { maSV: "KTH23CN209", tenSV: "Lâm Minh Đức" },
+    { maSV: "KTH23CN210", tenSV: "Võ Thị Thuý Duy" },
+    { maSV: "KTH23CN212", tenSV: "Phạm Thanh Hạnh" },
+    { maSV: "KTH23CN213", tenSV: "Trần Hào" },
+    { maSV: "KTH23CN216", tenSV: "Danh Huy" },
+    { maSV: "KTH23CN217", tenSV: "Lê Tấn Kha" },
+    { maSV: "KTH23CN218", tenSV: "Đặng Sơn Minh Khang" },
+    { maSV: "KTH23CN219", tenSV: "Huỳnh Văn Lel" },
+    { maSV: "KTH23CN220", tenSV: "Trần Đăng Lưu" },
+    { maSV: "KTH23CN221", tenSV: "Lâm Văn Minh" },
+    { maSV: "KTH23CN223", tenSV: "Đặng Văn Nghiệp" },
+    { maSV: "KTH23CN226", tenSV: "Nguyễn Yến Nhi" },
+    { maSV: "KTH23CN227", tenSV: "Nguyễn Thị Hồng Nhung" },
+    { maSV: "KTH23CN228", tenSV: "Nguyễn Thanh Phú" },
+    { maSV: "KTH23CN230", tenSV: "Võ Trí Dĩ" },
+    { maSV: "KTH23CN231", tenSV: "Hồ Minh Thuận" },
+    { maSV: "KTH23CN232", tenSV: "Nguyễn Thị Thương" },
+    { maSV: "KTH23CN233", tenSV: "Lê Bích Thùy" },
+    { maSV: "KTH23CN235", tenSV: "Nguyễn Chí Tính" },
+    { maSV: "KTH23CN236", tenSV: "Nguyễn Thị Tố Trinh" },
+    { maSV: "KTH23CN237", tenSV: "Đặng Văn Vĩ" },
+    { maSV: "KTH23CN238", tenSV: "Nguyễn Trí Vỉ" },
+    { maSV: "KTH23CN239", tenSV: "Phạm Trung Kiên" },
+    { maSV: "KTH23CN240", tenSV: "Danh Thị Minh Anh" },
+    { maSV: "KTH23CN241", tenSV: "Danh Lê Gia Bảo" },
+    { maSV: "KTH23CN242", tenSV: "Âu Triều Tân" },
+    { maSV: "KTH23CN243", tenSV: "Võ Đăng Trường" },
+    { maSV: "KTH23CN244", tenSV: "Nguyễn Bảo Khánh" },
+    { maSV: "KTH23CN245", tenSV: "Nguyễn Thành Đạt" }
+  ]
+},
+"CĐ K18": {
+ 
+  "Công nghệ thông tin": [
+    { maSV: "TH24CN2101", tenSV: "Danh Quốc Anh" },
+    { maSV: "TH24CN2103", tenSV: "Nguyễn Hoàng Gia Bảo" },
+    { maSV: "TH24CN2104", tenSV: "Trương Thị Thu Cúc" },
+    { maSV: "TH24CN2105", tenSV: "Trần Tấn Đạt" },
+    { maSV: "TH24CN2106", tenSV: "Trần Nguyễn Tiến Đạt" },
+    { maSV: "TH24CN2107", tenSV: "Nguyễn Kỳ Dũy" },
+    { maSV: "TH24CN2108", tenSV: "Huỳnh Thị Thúy Hằng" },
+    { maSV: "TH24CN2109", tenSV: "Trương Sỹ Hào" },
+    { maSV: "TH24CN2110", tenSV: "Nguyễn Quốc Hoàng" },
+    { maSV: "TH24CN2111", tenSV: "Lê Nhật Khang" },
+    { maSV: "TH24CN2112", tenSV: "Huỳnh Anh Khoa" },
+    { maSV: "TH24CN2113", tenSV: "Danh Anh Kiệt" },
+    { maSV: "TH24CN2114", tenSV: "Lê Gia Lộc" },
+    { maSV: "TH24CN2115", tenSV: "Phạm Thanh Lời" },
+    { maSV: "TH24CN2116", tenSV: "Thạch Văn Lợi" },
+    { maSV: "TH24CN2117", tenSV: "Nguyễn Thành Luân" },
+    { maSV: "TH24CN2118", tenSV: "Danh Thị Nhi" },
+    { maSV: "TH24CN2119", tenSV: "Cao Minh Nhựt" },
+    { maSV: "TH24CN2120", tenSV: "Nguyễn Tấn Phát" },
+    { maSV: "TH24CN2121", tenSV: "Mai Thành Phúc" },
+    { maSV: "TH24CN2122", tenSV: "Võ Văn Quí" },
+    { maSV: "TH24CN2123", tenSV: "Danh Hoàng Trung" },
+    { maSV: "TH24CN2124", tenSV: "Nguyễn Huy Trường" },
+    { maSV: "TH24CN2125", tenSV: "Phạm Huỳnh Anh Tuấn" },
+    { maSV: "TH24CN2126", tenSV: "Dương Thành Tỷ" },
+    { maSV: "TH24CN2127", tenSV: "Trần Nhã Uyên" },
+    { maSV: "TH24CN2128", tenSV: "Nguyễn Hoàng Vũ" },
+    { maSV: "TH24CN2129", tenSV: "Lưu Trương Minh" },
+    { maSV: "TH24CN2131", tenSV: "Lâm Phi Hùng" },
+    { maSV: "TH24CN2132", tenSV: "Nguyễn Thế Hiển" },
+    { maSV: "TH24CN2134", tenSV: "Nguyễn Ngọc Minh" }
+  ],
+  "Thiết kế đồ hoạ": [
+    { maSV: "TH24DH2101", tenSV: "Dương Quốc Cường" },
+    { maSV: "TH24DH2102", tenSV: "Hồ Xuân Diệu" },
+    { maSV: "TH24DH2103", tenSV: "Danh Thị Tường Duy" },
+    { maSV: "TH24DH2105", tenSV: "Nguyễn Châu Kha" },
+    { maSV: "TH24DH2107", tenSV: "Trần Thị Yến Ngọc" },
+    { maSV: "TH24DH2108", tenSV: "Trần Thị Tuyết Nhi" },
+    { maSV: "TH24DH2109", tenSV: "Ngô Thúy Quỳnh" },
+    { maSV: "TH24DH2110", tenSV: "Nguyễn Hiếu Thuận" },
+    { maSV: "TH24DH2111", tenSV: "Nguyễn Phước Trung" },
+    { maSV: "TH24DH2112", tenSV: "Hoàng Bảo Việt" },
+    { maSV: "TH24DH2113", tenSV: "Ngô Tường Vi" }
+  ]
+},
+"CĐ K19": {
+ 
+  "Công nghệ thông tin": [
+    { maSV: "CK25OT2214", tenSV: "Nguyễn Thanh Phong" },
+    { maSV: "TH25CN2101", tenSV: "Đặng Tấn An" },
+    { maSV: "TH25CN2102", tenSV: "Nguyễn Văn Anh" },
+    { maSV: "TH25CN2104", tenSV: "Trần Quốc Bảo" },
+    { maSV: "TH25CN2107", tenSV: "Võ Hoàng Duy" },
+    { maSV: "TH25CN2108", tenSV: "Lê Trọng Hiếu" },
+    { maSV: "TH25CN2109", tenSV: "Nguyễn Anh Hoà" },
+    { maSV: "TH25CN2110", tenSV: "Lê Hoàng Phi Hùng" },
+    { maSV: "TH25CN2111", tenSV: "Ngô Đăng Khoa" },
+    { maSV: "TH25CN2112", tenSV: "Nguyễn Chí Nguyên" },
+    { maSV: "TH25CN2113", tenSV: "Hà Lê Quang" },
+    { maSV: "TH25CN2114", tenSV: "Đỗ Hoàng Sang" },
+    { maSV: "TH25CN2116", tenSV: "Võ Hoàng Thịnh" },
+    { maSV: "TH25CN2117", tenSV: "Bùi Quốc Thịnh" },
+    { maSV: "TH25CN2118", tenSV: "Trần Anh Thư" },
+    { maSV: "TH25CN2120", tenSV: "Hà Nhựt Tính" },
+    { maSV: "TH25CN2121", tenSV: "Võ Thị Mỹ Trang" },
+    { maSV: "TH25CN2122", tenSV: "Đặng Nhớ Em" },
+    { maSV: "TH25CN2123", tenSV: "Trần Hoàng Hảo" },
+    { maSV: "TH25CN2124", tenSV: "Nguyễn Tấn Lợi" },
+    { maSV: "TH25CN2125", tenSV: "Nguyễn Thị Ngọc Ngà" },
+    { maSV: "TH25CN2126", tenSV: "Nguyễn Hoàng Tâm" },
+    { maSV: "TH25CN2127", tenSV: "Lý Gia Thịnh" },
+    { maSV: "TH25CN2128", tenSV: "Lâm Hồng Tiến" },
+    { maSV: "TH25CN2129", tenSV: "Lê Thị Tường Vy" },
+    { maSV: "TH25CN2130", tenSV: "Võ Thế Quân" },
+    { maSV: "TH25CN2131", tenSV: "Trần Cẩm Luyến" },
+    { maSV: "TH25DH2113", tenSV: "Phạm Văn Lương" }
+  ],
+"Thiết kế đồ hoạ": [
+    { maSV: "TH24DH2106", tenSV: "Trần Hoàng Anh Khoa" },
+    { maSV: "TH25CN2103", tenSV: "Lê Trần Hải Âu" },
+    { maSV: "TH25CN2106", tenSV: "Thị Bé Dư" },
+    { maSV: "TH25CN2115", tenSV: "Danh Hoàng Tấn" },
+    { maSV: "TH25CN2119", tenSV: "Trần Ngọc Anh Thư" },
+    { maSV: "TH25DH2101", tenSV: "Lê Thanh Bình" },
+    { maSV: "TH25DH2102", tenSV: "Lê Thành Đạt" },
+    { maSV: "TH25DH2103", tenSV: "Lê Chí Dương" },
+    { maSV: "TH25DH2104", tenSV: "Phạm Xuân Hiếu" },
+    { maSV: "TH25DH2105", tenSV: "Nguyễn Thị Ngọc Linh" },
+    { maSV: "TH25DH2106", tenSV: "Huỳnh Gia Nghi" }
+  ]
+},
+"CĐ9+K3": {
+  "Công nghệ thông tin 1": [
+    { maSV: "TH24LTC101", tenSV: "Cấn Đặng Việt Anh" },
+    { maSV: "TH25LTU102", tenSV: "Nguyễn Trang Minh Ánh" },
+    { maSV: "TH25LTU103", tenSV: "Ong Thanh Bình" },
+    { maSV: "TH25LTU104", tenSV: "Nguyễn Duy Đăng" },
+    { maSV: "TH25LTU105", tenSV: "Lê Huỳnh Nhật Đăng" },
+    { maSV: "TH25LTU109", tenSV: "Lê Nguyên Khang" },
+    { maSV: "TH25LTU115", tenSV: "Lê Thị Mến" },
+    { maSV: "TH25LTU116", tenSV: "Trần Hoài Nam" },
+    { maSV: "TH25LTU119", tenSV: "Nguyễn Thị Thảo Nhi" },
+    { maSV: "TH25LTU120", tenSV: "Ngô Tấn Phát" },
+    { maSV: "TH25LTU121", tenSV: "Trần Thiên Phú" },
+    { maSV: "TH25LTU123", tenSV: "Phạm Thảo Quỳnh" },
+    { maSV: "TH25LTU124", tenSV: "Bùi Chí Sang" },
+    { maSV: "TH25LTU125", tenSV: "Nguyễn Hữu Sang" },
+    { maSV: "TH25LTU126", tenSV: "Đỗ Huỳnh Việt Thắng" },
+    { maSV: "TH25LTU128", tenSV: "Nguyễn Trung Thịnh" },
+    { maSV: "TH25LTU129", tenSV: "Lê Văn Thương" },
+    { maSV: "TH25LTU130", tenSV: "Lê Minh Trung" },
+    { maSV: "TH25LTU132", tenSV: "Huỳnh Trúc Uyên" },
+    { maSV: "TH25LTU133", tenSV: "Nguyễn Phú Vinh" },
+    { maSV: "TH25LTU134", tenSV: "Đỗ Thị Ngọc Vy" }
+  ],
+  "Công nghệ thông tin 2": [
+    { maSV: "TH25LTU203", tenSV: "Nguyễn Hữu Bằng" },
+    { maSV: "TH25LTU204", tenSV: "Trương Quốc Bảo" },
+    { maSV: "TH25LTU205", tenSV: "Võ Văn Minh Châu" },
+    { maSV: "TH25LTU207", tenSV: "Huỳnh Tấn Đức" },
+    { maSV: "TH25LTU211", tenSV: "Trần Văn Hào" },
+    { maSV: "TH25LTU212", tenSV: "Lê Minh Hậu" },
+    { maSV: "TH25LTU215", tenSV: "Trần Đình Huy" },
+    { maSV: "TH25LTU216", tenSV: "Đoàn Ngọc Vỉ Khang" },
+    { maSV: "TH25LTU218", tenSV: "Nguyễn Đức Khôi" },
+    { maSV: "TH25LTU219", tenSV: "Nguyễn Thiên Lâm" },
+    { maSV: "TH25LTU224", tenSV: "Ong Thành Nhân" },
+    { maSV: "TH25LTU226", tenSV: "Huỳnh Thanh Phong" },
+    { maSV: "TH25LTU227", tenSV: "Danh Thành Phú" },
+    { maSV: "TH25LTU230", tenSV: "Bùi Trường Sơn" },
+    { maSV: "TH25LTU231", tenSV: "Mai Quốc Thắng" },
+    { maSV: "TH25LTU232", tenSV: "Phù Thanh Thảo" },
+    { maSV: "TH25LTU234", tenSV: "Lâm Gia Anh Thư" },
+    { maSV: "TH25LTU235", tenSV: "Phan Thu Trang" },
+    { maSV: "TH25LTU236", tenSV: "Nguyễn Thành Triển" },
+    { maSV: "TH25LTU237", tenSV: "Đào Mai Anh Tú" },
+    { maSV: "TH25LTU238", tenSV: "Nguyễn Văn Tùng" },
+    { maSV: "TH25LTU239", tenSV: "Đặng Phong Vinh" }
+  ]
+},
+"CĐ9+K2": {
+  "Công nghệ thông tin 1": [
+    { maSV: "TH24LTC116", tenSV: "Quách Hữu Nghì" },
+    { maSV: "TH24LTC122", tenSV: "Huỳnh Tố Tài" }
+  ]
+},
+  },
+  //==================KINH TẾ LUẬT================================
+  "KINH TẾ - LUẬT": {
+    "CĐ9+K2": {
+        "Kế toán": [
+    { maSV: "KTL24LTK09", tenSV: "Trần Quốc Hiển" }
+  ]
+    },
+    "CĐ9+K3": {
+"Kế toán": [
+    { maSV: "KT25LTKT01", tenSV: "Huỳnh Thị Ngọc Anh" },
+    { maSV: "KT25LTKT02", tenSV: "Huỳnh Thị Đẹp" },
+    { maSV: "KT25LTKT03", tenSV: "Võ Trí Dĩ" },
+    { maSV: "KT25LTKT04", tenSV: "Nguyễn Ngọc Diễm" },
+    { maSV: "KT25LTKT05", tenSV: "Nguyễn Quốc Dương" },
+    { maSV: "KT25LTKT06", tenSV: "Nguyễn Ngọc Gia Hân" },
+    { maSV: "KT25LTKT07", tenSV: "Trần Thị Mỹ Linh" },
+    { maSV: "KT25LTKT10", tenSV: "Trịnh Phạm Yến Nhi" },
+    { maSV: "KT25LTKT11", tenSV: "Thị Yến Nhi" },
+    { maSV: "KT25LTKT12", tenSV: "Nguyễn Thị Huỳnh Như" },
+    { maSV: "KT25LTKT13", tenSV: "Nguyễn Huỳnh Như" },
+    { maSV: "KT25LTKT15", tenSV: "Nguyễn Thị Tú Quyên" },
+    { maSV: "KT25LTKT16", tenSV: "Lê Thái Gia Thư" },
+    { maSV: "KT25LTKT17", tenSV: "Nguyễn Anh Thư" },
+    { maSV: "KT25LTKT18", tenSV: "Nguyễn Thị Kim Tiên" },
+    { maSV: "KT25LTKT20", tenSV: "Phạm Thủy Tiên" },
+    { maSV: "KT25LTKT21", tenSV: "Huỳnh Ngọc Trâm" },
+    { maSV: "KT25LTKT22", tenSV: "Hàng Thị Tường Vi" },
+    { maSV: "KT25LTKT23", tenSV: "Nguyễn Ngọc Tường Vy" },
+    { maSV: "KT25LTKT24", tenSV: "Lê Thị Thảo Vy" }
+  ]
+    },
+    "CĐ9+K4": {
+        "Kế Toán":  [
+  { maSV: "CK23KL3105", tenSV: "Nguyễn Trường Giang" },
+  { maSV: "KT23KT3101", tenSV: "Trần Thuý An" },
+  { maSV: "KT23KT3102", tenSV: "Huỳnh Anh" },
+  { maSV: "KT23KT3103", tenSV: "Lý Băng Băng" },
+  { maSV: "KT23KT3104", tenSV: "Viên Thị Băng Băng" },
+  { maSV: "KT23KT3105", tenSV: "Lê Trường Gia Bảo" },
+  { maSV: "KT23KT3106", tenSV: "Lương Nguyễn Thuý Hằng" },
+  { maSV: "KT23KT3107", tenSV: "Lê Nguyễn Gia Hiên" },
+  { maSV: "KT23KT3108", tenSV: "Trương Thị Trúc Huỳnh" },
+  { maSV: "KT23KT3109", tenSV: "Hồ Minh Khôi" },
+  { maSV: "KT23KT3111", tenSV: "Từ Thị Mỹ Lan" },
+  { maSV: "KT23KT3112", tenSV: "Trịnh Thị Trúc Linh" },
+  { maSV: "KT23KT3113", tenSV: "Sử Mỹ Loan" },
+  { maSV: "KT23KT3115", tenSV: "Lý Diễm My" },
+  { maSV: "KT23KT3117", tenSV: "Nguyễn Võ Bảo Ngân" },
+  { maSV: "KT23KT3118", tenSV: "Nguyễn Thị Bé Nho" },
+  { maSV: "KT23KT3119", tenSV: "Trương Huỳnh Như" },
+  { maSV: "KT23KT3120", tenSV: "Lâm Tuấn Nhựt" },
+  { maSV: "KT23KT3121", tenSV: "Huỳnh Thị Thu Sương" },
+  { maSV: "KT23KT3122", tenSV: "Nguyễn Thị Hồng Thắm" },
+  { maSV: "KT23KT3123", tenSV: "Nguyễn Thị Thiên Thanh" },
+  { maSV: "KT23KT3124", tenSV: "Huỳnh Như Thảo" },
+  { maSV: "KT23KT3129", tenSV: "Lê Thị Gia Tuệ" },
+  { maSV: "KT23KT3132", tenSV: "Nghiêm Thị Băng Tiền" },
+  { maSV: "KT23KT3133", tenSV: "Huỳnh Thị Huỳnh Như" },
+  { maSV: "KT23KT3134", tenSV: "Trương Kim Phụng Khánh" },
+  { maSV: "KT23NH3105", tenSV: "Võ Thị Thúy Ngân" }
+],
+    },
+      "CĐ9+K5": {
+    "Quản trị kinh doanh": [
+      { maSV: "DL24KS3320", tenSV: "Nguyễn Huỳnh Mai Nguyên" },
+      { maSV: "KT24QT3101", tenSV: "Danh Thị Thuý An" },
+      { maSV: "KT24QT3102", tenSV: "Đặng Huế Anh" },
+      { maSV: "KT24QT3103", tenSV: "Phạm Quốc Anh" },
+      { maSV: "KT24QT3105", tenSV: "Nguyễn Ngọc Chăm" },
+      { maSV: "KT24QT3106", tenSV: "Hình Tuyết Duy" },
+      { maSV: "KT24QT3107", tenSV: "Tạ Huỳnh Bảo Hân" },
+      { maSV: "KT24QT3110", tenSV: "Nguyễn Hữu Khang" },
+      { maSV: "KT24QT3111", tenSV: "Nguyễn Chí Khang" },
+      { maSV: "KT24QT3112", tenSV: "Trần Kim Ly" },
+      { maSV: "KT24QT3115", tenSV: "Đoàn Trọng Nghĩa" },
+      { maSV: "KT24QT3116", tenSV: "Vương Tố Ngọc" },
+      { maSV: "KT24QT3117", tenSV: "Nguyễn Huỳnh Mỹ Ngọc" },
+      { maSV: "KT24QT3118", tenSV: "Trần Huỳnh Như" },
+      { maSV: "KT24QT3119", tenSV: "Nguyễn Ngọc Tâm Như" },
+      { maSV: "KT24QT3120", tenSV: "Lâm Huỳnh Như" },
+      { maSV: "KT24QT3123", tenSV: "Lê Tú Sương" },
+      { maSV: "KT24QT3126", tenSV: "Bùi Hà Anh Thư" },
+      { maSV: "KT24QT3128", tenSV: "Nguyễn Thị Thanh Thuý" },
+      { maSV: "KT24QT3129", tenSV: "Nguyễn Thị Lệ Thuỷ" },
+      { maSV: "KT24QT3130", tenSV: "Trần Phương Thúy" },
+      { maSV: "KT24QT3132", tenSV: "Chao Thị Huyền Trân" },
+      { maSV: "KT24QT3135", tenSV: "Tiêu Như Vàng" },
+      { maSV: "KT24QT3136", tenSV: "Bùi Nguyễn Thúy Vy" },
+      { maSV: "KT24QT3137", tenSV: "Danh Lâm Yến Vy" },
+      { maSV: "KT24QT3138", tenSV: "Nguyễn Thị Kim Xuyến" },
+      { maSV: "KT24QT3139", tenSV: "Huỳnh Thị Như Ý" },
+      { maSV: "KT24QT3140", tenSV: "Hồ Thiên Hạo" }
+    ],
+    "Kế toán doanh nghiệp": [
+  { maSV: "KT24KT3102", tenSV: "Lê Thị Kim Anh" },
+  { maSV: "KT24KT3103", tenSV: "Lê Thị Lan Anh" },
+  { maSV: "KT24KT3148", tenSV: "Phạm Bảo Anh" },
+  { maSV: "KT24KT3104", tenSV: "Trần Gia Bảo" },
+  { maSV: "KT24KT3105", tenSV: "Nguyễn Hữu Bin" },
+  { maSV: "KT24KT3107", tenSV: "Đỗ Yến Chi" },
+  { maSV: "KT24KT3108", tenSV: "Trần Ngọc Nhã Đan" },
+  { maSV: "KT24KT3109", tenSV: "Lâm Kim Đoan" },
+  { maSV: "KT24KT3110", tenSV: "Nguyễn Ngọc Hân" },
+  { maSV: "KT24KT3112", tenSV: "Dương Ngọc Hân" },
+  { maSV: "KT24KT3113", tenSV: "Nguyễn Sử Bích Hương" },
+  { maSV: "KT24KT3114", tenSV: "Dương Nguyễn Lan Hương" },
+  { maSV: "KT24KT3115", tenSV: "Lâm Tùng Huy" },
+  { maSV: "KT24KT3149", tenSV: "Nguyễn Thiên Kim" },
+  { maSV: "KT24KT3116", tenSV: "Nguyễn Trần Nhã Kỳ" },
+  { maSV: "KT24KT3117", tenSV: "Phan Trường Kỹ" },
+  { maSV: "KT24KT3118", tenSV: "Nguyễn Hồ Thảo Lam" },
+  { maSV: "NN24TY3117", tenSV: "Nguyễn Thị Gia Linh" },
+  { maSV: "KT24KT3120", tenSV: "Đỗ Thảo My" },
+  { maSV: "KT24KT3121", tenSV: "Trần Thị Hà My" },
+  { maSV: "KT24KT3122", tenSV: "Nguyễn Kim Ngân" },
+  { maSV: "KT24KT3123", tenSV: "Hồng Kim Nhàn" },
+  { maSV: "KT24KT3124", tenSV: "Huỳnh Thị Trúc Nhi" },
+  { maSV: "KT24KT3125", tenSV: "Lâm Thanh Nhiên" },
+  { maSV: "KT24KT3126", tenSV: "Ngô Huỳnh Ngọc Như" },
+  { maSV: "KT24KT3155", tenSV: "Nguyễn Hữu Phúc" },
+  { maSV: "KT24KT3128", tenSV: "Trần Thị Tố Phương" },
+  { maSV: "KT24KT3129", tenSV: "Nguyễn Thị Mai Phương" },
+  { maSV: "KT24KT3130", tenSV: "Nguyễn Ngọc Thanh Phương" },
+  { maSV: "KT24QT3121", tenSV: "Huỳnh Phương Quyên" },
+  { maSV: "KT24KT3131", tenSV: "Nguyễn Thái Ngọc Sang" },
+  { maSV: "KT24QT3122", tenSV: "Lê Vô Song" },
+  { maSV: "KT24KT3132", tenSV: "Nguyễn Thị Thanh Tâm" },
+  { maSV: "KT24KT3133", tenSV: "Danh Trọng Tấn" },
+  { maSV: "KT24KT3134", tenSV: "Lê Phương Thanh" },
+  { maSV: "KT24KT3152", tenSV: "Đặng Thị Minh Thư" },
+  { maSV: "KT24KT3156", tenSV: "Trần Ngọc Anh Thư" },
+  { maSV: "KT24KT3137", tenSV: "Nguyễn Thị Phương Thùy" },
+  { maSV: "KT24KT3138", tenSV: "Trần Nguyễn Yến Thy" },
+  { maSV: "KT24KT3139", tenSV: "Lê Hồ Ngọc Trân" },
+  { maSV: "KT24KT3140", tenSV: "Huỳnh Ngô Bảo Trân" },
+  { maSV: "KT24KT3141", tenSV: "Dương Ngọc Huyền Trân" },
+  { maSV: "KT24KT3142", tenSV: "Lê Thị Thảo Trang" },
+  { maSV: "KT24KT3153", tenSV: "Nguyễn Thị Đoan Trang" },
+  { maSV: "DL24TA3127", tenSV: "Bành Thị Phương Uyên" },
+  { maSV: "KT24KT3144", tenSV: "Từ Thảo Vi" },
+  { maSV: "KT24KT3145", tenSV: "Lê Thị Tường Vy" },
+  { maSV: "KT24KT3146", tenSV: "Nguyễn Thị Như Ý" }
+]
+  },
+  "CĐ9+K6": {
+    "Kế toán": [
+  { maSV: "KT24KT3150", tenSV: "Nguyễn Thiên Nhi" },
+  { maSV: "KT25KT3101", tenSV: "Trần Minh Anh" },
+  { maSV: "KT25KT3102", tenSV: "Danh Thị Huyền Anh" },
+  { maSV: "KT25KT3103", tenSV: "Phạm Quốc Bảo" },
+  { maSV: "KT25KT3104", tenSV: "Quách Linh Đan" },
+  { maSV: "KT25KT3105", tenSV: "Nguyễn Thị Hồng Đào" },
+  { maSV: "KT25KT3107", tenSV: "Võ Phạm Trường Giang" },
+  { maSV: "KT25KT3108", tenSV: "Thị Mỹ Hiền" },
+  { maSV: "KT25KT3109", tenSV: "Lê Anh Kiệt" },
+  { maSV: "KT25KT3110", tenSV: "Lê Xuân Mai" },
+  { maSV: "KT25KT3111", tenSV: "Nguyễn Thảo My" },
+  { maSV: "KT25KT3112", tenSV: "Trần Phạm Bảo Na" },
+  { maSV: "KT25KT3113", tenSV: "Lâm Huỳnh Như" },
+  { maSV: "KT25KT3114", tenSV: "Đặng Tấn Phát" },
+  { maSV: "KT25KT3115", tenSV: "Trần Thị Minh Thư" },
+  { maSV: "KT25KT3116", tenSV: "Nguyễn Ngọc Minh Thư" },
+  { maSV: "KT25KT3118", tenSV: "Đinh Ngọc Trâm" },
+  { maSV: "KT25KT3119", tenSV: "Vương Ngọc Phụng" }
+],
+"Quản Trị Kinh Doanh": [
+  { maSV: "DL25KS3123", tenSV: "Lê Tân Phát" },
+  { maSV: "KT25QT3101", tenSV: "Hồ Bảo Anh" },
+  { maSV: "KT25QT3103", tenSV: "Vũ Hương Giang" },
+  { maSV: "KT25QT3104", tenSV: "Lương Thị Cẩm Giềng" },
+  { maSV: "KT25QT3105", tenSV: "Tiêu Thanh Hà" },
+  { maSV: "KT25QT3106", tenSV: "Trần Hoàng Hải" },
+  { maSV: "KT25QT3108", tenSV: "Đỗ Thị Hân" },
+  { maSV: "KT25QT3109", tenSV: "Võ Thị Ngọc Hân" },
+  { maSV: "KT25QT3110", tenSV: "Phan Ngọc Kim Hạnh" },
+  { maSV: "KT25QT3113", tenSV: "Võ Thị Ngọc Lam" },
+  { maSV: "KT25QT3114", tenSV: "Trịnh Thị Linh Lan" },
+  { maSV: "KT25QT3115", tenSV: "Trịnh Thị Khánh Mĩ" },
+  { maSV: "KT25QT3116", tenSV: "Lê Trần Thảo Nguyên" },
+  { maSV: "KT25QT3117", tenSV: "Nguyễn Ý Nhi" },
+  { maSV: "KT25QT3118", tenSV: "Lương Thảo Nhi" },
+  { maSV: "KT25QT3119", tenSV: "Nguyễn Thị Tuyết Nhi" },
+  { maSV: "KT25QT3120", tenSV: "Dương Trọng Phúc" },
+  { maSV: "KT25QT3121", tenSV: "Trần Hiếu Quang" },
+  { maSV: "KT25QT3123", tenSV: "Lê Thị Cẩm Thu" },
+  { maSV: "KT25QT3124", tenSV: "Lê Kim Tính" },
+  { maSV: "KT25QT3125", tenSV: "Nguyễn Liêu Trung Tình" },
+  { maSV: "KT25QT3126", tenSV: "Nguyễn Ngọc Thùy Trâm" },
+  { maSV: "KT25QT3127", tenSV: "Trần Huyền Trân" },
+  { maSV: "KT25QT3128", tenSV: "Nguyễn Huỳnh Tú Trinh" },
+  { maSV: "KT25QT3129", tenSV: "Tô Ngọc Tuyết" },
+  { maSV: "KT25QT3131", tenSV: "Nguyễn Ngọc Tường Vy" },
+  { maSV: "KT25QT3132", tenSV: "Nguyễn Như Ý" },
+  { maSV: "KT25QT3133", tenSV: "Trương Khả Ý" },
+  { maSV: "KT25QT3134", tenSV: "Lê Thị Phương Anh" },
+  { maSV: "KT25QT3135", tenSV: "Đỗ Thị Hồng Diễm" }
+]
+  },
+      "CĐ K17": {
+        "Kế toán": [
+    { maSV: "DL23KS2105", tenSV: "Phạm Thị Kim Tiền" },
+    { maSV: "KDL23TA222", tenSV: "Trần Nguyễn Triệu Vy" },
+    { maSV: "KDL23TD215", tenSV: "Nguyễn Thị Diểm Trinh" },
+    { maSV: "KKT23KT201", tenSV: "Trần Thị Cam" },
+    { maSV: "KKT23KT202", tenSV: "Trần Di Đal" },
+    { maSV: "KKT23KT204", tenSV: "Huỳnh Ngọc Diễm" },
+    { maSV: "KKT23KT205", tenSV: "Vũ Phương Doanh" },
+    { maSV: "KKT23KT206", tenSV: "Đoàn Thanh Dương" },
+    { maSV: "KKT23KT209", tenSV: "Lê Ngọc Hân" },
+    { maSV: "KKT23KT210", tenSV: "Danh Thị Nhựt Khoa" },
+    { maSV: "KKT23KT211", tenSV: "Nguyễn Linh Khôi" },
+    { maSV: "KKT23KT212", tenSV: "Phạm Thị Lài" },
+    { maSV: "KKT23KT213", tenSV: "Nguyễn Cao Hoàng Lâm" },
+    { maSV: "KKT23KT214", tenSV: "Trần Mỹ Lan" },
+    { maSV: "KKT23KT215", tenSV: "Đỗ Ngọc Luyến" },
+    { maSV: "KKT23KT216", tenSV: "Nguyễn Hồng Ý Mỹ" },
+    { maSV: "KKT23KT217", tenSV: "Phạm Kim Ngân" },
+    { maSV: "KKT23KT218", tenSV: "Trần Hữu Nghị" },
+    { maSV: "KKT23KT220", tenSV: "Châu Thị Yến Nhi" },
+    { maSV: "KKT23KT221", tenSV: "Huỳnh Như" },
+    { maSV: "KKT23KT222", tenSV: "Đoàn Thị Tố Oanh" },
+    { maSV: "KKT23KT223", tenSV: "Thái Quốc Phong" },
+    { maSV: "KKT23KT224", tenSV: "Nguyễn Trần Hồng Phúc" },
+    { maSV: "KKT23KT225", tenSV: "Đỗ Ngọc Quyến" },
+    { maSV: "KKT23KT226", tenSV: "Hà Huy Thủ" },
+    { maSV: "KKT23KT227", tenSV: "Trương Minh Tiến" },
+    { maSV: "KKT23KT228", tenSV: "Phan Bích Trâm" },
+    { maSV: "KKT23KT230", tenSV: "Trương Huyền Trân" },
+    { maSV: "KKT23KT231", tenSV: "Danh Thị Ngọc Trân" },
+    { maSV: "KKT23KT235", tenSV: "Ngô Thị Phương Hồng" },
+    { maSV: "KKT23KT236", tenSV: "Phạm Thị Hương Thơm" },
+    { maSV: "KKT23KT240", tenSV: "Nguyễn Thị Ngọc Yến" },
+    { maSV: "KKT23KT241", tenSV: "Dương Trung Hiếu" },
+    { maSV: "KKT23KT243", tenSV: "Võ Thanh Thuý" },
+    { maSV: "KKT23KT244", tenSV: "Phạm Thị Mai Linh" },
+    { maSV: "KKT23KT245", tenSV: "Phạm Thị Thảo Ngân" },
+    { maSV: "KKT23KT246", tenSV: "Trần Xuân Như" },
+    { maSV: "KKT23KT247", tenSV: "Nguyễn Lê Bảo Trân" },
+    { maSV: "KKT23KT249", tenSV: "Nguyễn Huỳnh Thư" },
+    { maSV: "KL22KT2125", tenSV: "Hồ Thảo Quyên" },
+    { maSV: "KL22KT2153", tenSV: "Trần Thị Tú Quyên" },
+    { maSV: "KTH23CN205", tenSV: "Nguyễn Tấn Đạt" }
+  ],
+  "Quản trị kinh doanh": [
+    { maSV: "KKT23QT201", tenSV: "Thị Ngọc Bảo" },
+    { maSV: "KKT23QT202", tenSV: "Bùi Thị Ngọc Bích" },
+    { maSV: "KKT23QT203", tenSV: "Châu Thành Công" },
+    { maSV: "KKT23QT205", tenSV: "Hồ Hải Dương" },
+    { maSV: "KKT23QT206", tenSV: "Huỳnh Gia Hân" },
+    { maSV: "KKT23QT207", tenSV: "Nguyễn Thúy Hiền" },
+    { maSV: "KKT23QT208", tenSV: "Nguyễn Lý Huỳnh" },
+    { maSV: "KKT23QT210", tenSV: "Nguyễn Phát Thành Lộc" },
+    { maSV: "KKT23QT211", tenSV: "Phan Thảo My" },
+    { maSV: "KKT23QT214", tenSV: "Nguyễn Thị Quỳnh Ny" },
+    { maSV: "KKT23QT215", tenSV: "Nguyễn Hồng Phương" },
+    { maSV: "KKT23QT216", tenSV: "Phạm Thị Mỹ Quyên" },
+    { maSV: "KKT23QT217", tenSV: "Nguyễn Đức Tâm" },
+    { maSV: "KKT23QT218", tenSV: "Phạm Kim Thật" },
+    { maSV: "KKT23QT219", tenSV: "Vương Minh Thư" },
+    { maSV: "KKT23QT220", tenSV: "Phan Anh Tuấn" },
+    { maSV: "KKT23QT221", tenSV: "Vũ Tường Vi" },
+    { maSV: "KKT23QT222", tenSV: "Lê Thanh Xuân" },
+    { maSV: "KKT23QT223", tenSV: "Võ Thu Thảo" },
+    { maSV: "KKT23QT226", tenSV: "Ngô Tường Duy" },
+    { maSV: "KKT23QT227", tenSV: "Trần Thị Mộng" },
+    { maSV: "KKT23QT228", tenSV: "Trần Thị Mơ" },
+    { maSV: "KKT23QT230", tenSV: "Vương Kim Thảo" },
+    { maSV: "KKT23QT231", tenSV: "Huỳnh Gia Bảo" },
+    { maSV: "KKT23QT232", tenSV: "Lê Thị Kiều Chinh" },
+    { maSV: "KKT23QT233", tenSV: "Lê Tấn Phú" },
+    { maSV: "KKT23QT234", tenSV: "Phạm Dương Tường Vy" },
+    { maSV: "KNN23TP204", tenSV: "Đoàn Thị Thanh Nga" }
+  ]
+    },
+    "CĐ K18": {
+  "Kế toán": [
+    { maSV: "CK24OT2307", tenSV: "Dương Quốc Duy" },
+    { maSV: "KT24KT2101", tenSV: "Mai Thuý An" },
+    { maSV: "KT24KT2102", tenSV: "Phạm Quỳnh Anh" },
+    { maSV: "KT24KT2103", tenSV: "Nguyễn Thị Y Bình" },
+    { maSV: "KT24KT2104", tenSV: "Phạm Thị Ngọc Hân" },
+    { maSV: "KT24KT2105", tenSV: "Du Thị Kiều Hương" },
+    { maSV: "KT24KT2106", tenSV: "Trang Phong Lan" },
+    { maSV: "KT24KT2107", tenSV: "Danh Nguyễn Linda" },
+    { maSV: "KT24KT2108", tenSV: "Phạm Yến Ly" },
+    { maSV: "KT24KT2109", tenSV: "Đoàn Nhã Ngọc" },
+    { maSV: "KT24KT2110", tenSV: "Nguyễn Trí Nguyện" },
+    { maSV: "KT24KT2111", tenSV: "Nguyễn Ngọc Nhi" },
+    { maSV: "KT24KT2112", tenSV: "Võ Yến Nhi" },
+    { maSV: "KT24KT2113", tenSV: "Nguyễn Trúc Quyên" },
+    { maSV: "KT24KT2114", tenSV: "Danh Thái" },
+    { maSV: "KT24KT2115", tenSV: "Trương Hoàng Thắng" },
+    { maSV: "KT24KT2116", tenSV: "Dư Minh Thiện" },
+    { maSV: "KT24KT2118", tenSV: "Huỳnh Ngọc Trâm" },
+    { maSV: "KT24KT2119", tenSV: "Nguyễn Thu Trâm" },
+    { maSV: "KT24KT2120", tenSV: "Hồ Huỳnh Trân" },
+    { maSV: "KT24KT2121", tenSV: "Trần Huỳnh Thuý Vi" },
+    { maSV: "KT24KT2122", tenSV: "Lê Công Quang Vỉ" },
+    { maSV: "KT24KT2123", tenSV: "Phạm Ngọc Vy" },
+    { maSV: "KT24KT2124", tenSV: "Võ Ngọc Thảo Vy" },
+    { maSV: "KT24KT2125", tenSV: "Đặng Thị Kim Yến" },
+    { maSV: "KT24KT2126", tenSV: "Trần Kim Nhu" },
+    { maSV: "KT24KT2127", tenSV: "Danh Mỹ Quân" },
+    { maSV: "KT24KT2128", tenSV: "Đặng Phan Gia Thư" },
+    { maSV: "KT24KT2129", tenSV: "Bùi Văn Khởi" },
+    { maSV: "KT24KT2130", tenSV: "Ngô Minh Tuấn" },
+    { maSV: "KT24KT2131", tenSV: "Nguyễn Trúc Giang" }
+  ],
+  "Quản trị kinh doanh": [
+    { maSV: "KT24QT2101", tenSV: "Danh Thị Thuý An" },
+    { maSV: "KT24QT2102", tenSV: "Thị Duyên Anh" },
+    { maSV: "KT24QT2103", tenSV: "Võ Thị Thuỳ Dương" },
+    { maSV: "KT24QT2104", tenSV: "Danh Nguyễn Thảo Hiền" },
+    { maSV: "KT24QT2107", tenSV: "Nguyễn Văn Khanh" },
+    { maSV: "KT24QT2108", tenSV: "Nguyễn Huỳnh Minh Khôi" },
+    { maSV: "KT24QT2109", tenSV: "Lê Chí Linh" },
+    { maSV: "KT24QT2110", tenSV: "Lê Thị Trúc Ly" },
+    { maSV: "KT24QT2111", tenSV: "Nguyễn Văn Minh" },
+    { maSV: "KT24QT2112", tenSV: "Phan Dương Tuyết Nhi" },
+    { maSV: "KT24QT2113", tenSV: "Trần Thị Ngọc Trâm" },
+    { maSV: "KT24QT2114", tenSV: "Lê Huyền Trân" },
+    { maSV: "KT24QT2115", tenSV: "Đặng Thị Thanh Tuyền" },
+    { maSV: "KT24QT2116", tenSV: "Danh Trương Thảo Uyên" },
+    { maSV: "KT24QT2117", tenSV: "Hứa Quốc Vinh" },
+    { maSV: "KT24QT2118", tenSV: "Phạm Thị Yến Vy" },
+    { maSV: "KT24QT2119", tenSV: "Phạm Trương Phi Yến" },
+    { maSV: "KT24QT2121", tenSV: "Nguyễn Thị Thịnh" },
+    { maSV: "KT24QT2123", tenSV: "Lê Vũ Thúy Quỳnh" },
+    { maSV: "KT24QT2124", tenSV: "Danh Thị Huyền Trang" }
+  ]
+    },
+      "CĐ K19": {
+ "Kế toán": [
+    { maSV: "KT25KT2101", tenSV: "Huỳnh Kim Bình" },
+    { maSV: "KT25KT2102", tenSV: "Đoàn Song Hân" },
+    { maSV: "KT25KT2103", tenSV: "Võ Thị Ngọc Hân" },
+    { maSV: "KT25KT2104", tenSV: "Nguyễn Thị Mỹ Hạnh" },
+    { maSV: "KT25KT2105", tenSV: "Võ Nguyễn Chúc Lam" },
+    { maSV: "KT25KT2106", tenSV: "Danh Thị Ngọc Mai" },
+    { maSV: "KT25KT2107", tenSV: "Đặng Thị Thúy Nga" },
+    { maSV: "KT25KT2108", tenSV: "Hồ Thị Thanh Ngân" },
+    { maSV: "KT25KT2109", tenSV: "Lê Ngọc Quỳnh Như" },
+    { maSV: "KT25KT2110", tenSV: "Thị Cẩm Nhung" },
+    { maSV: "KT25KT2111", tenSV: "Tạ Lệ Quyên" },
+    { maSV: "KT25KT2112", tenSV: "Đặng Thị Kim Yến" },
+    { maSV: "KT25KT2113", tenSV: "Lâm Phạm Gia An" },
+    { maSV: "KT25KT2114", tenSV: "Nguyễn Thị Ngọc Hạ" },
+    { maSV: "KT25KT2115", tenSV: "Đặng Nguyễn Ngọc Hiền" },
+    { maSV: "KT25KT2116", tenSV: "Hứa Quốc Khang" },
+    { maSV: "KT25KT2117", tenSV: "Dương Minh Lực" },
+    { maSV: "KT25KT2118", tenSV: "Lý Diệu Nga" },
+    { maSV: "KT25KT2119", tenSV: "Nguyễn Thị Yến Nhi" },
+    { maSV: "KT25KT2120", tenSV: "Nguyễn Phương Quỳnh" },
+    { maSV: "KT25KT2121", tenSV: "Nguyễn Thị Phương Thảo" },
+    { maSV: "KT25KT2122", tenSV: "Nguyễn Thị Ngọc Thuỳ" },
+    { maSV: "KT25KT2123", tenSV: "Lê Đình Phương Vy" },
+    { maSV: "KT25KT2124", tenSV: "Đặng Bích Vy" },
+    { maSV: "KT25KT2125", tenSV: "Lương Thị Như Ý" },
+    { maSV: "KT25KT2126", tenSV: "Phạm Văn Nhựt" },
+    { maSV: "KT25KT2127", tenSV: "Võ Văn Đàng" },
+    { maSV: "KT25KT2128", tenSV: "Nguyễn Kim Lộc Uyển" },
+    { maSV: "KT25KT2129", tenSV: "Trương Thị Bé Yên" }
+  ],
+  "Quản trị kinh doanh": [
+    { maSV: "DL25HD2122", tenSV: "Nguyễn Thị Như Quỳnh" },
+    { maSV: "DL25KS2103", tenSV: "Nguyễn Thị Lan Anh" },
+    { maSV: "KT25QT2101", tenSV: "Nguyễn Trường An" },
+    { maSV: "KT25QT2102", tenSV: "Trần Thúy Anh" },
+    { maSV: "KT25QT2104", tenSV: "Danh Thị Bích Duyên" },
+    { maSV: "KT25QT2105", tenSV: "Trần Thị Mỹ Hoàng" },
+    { maSV: "KT25QT2106", tenSV: "La Hoàng Khánh Hưng" },
+    { maSV: "KT25QT2107", tenSV: "Phạm Thị Như Huỳnh" },
+    { maSV: "KT25QT2108", tenSV: "Phạm Đào Kim Khánh" },
+    { maSV: "KT25QT2109", tenSV: "Nguyễn Quốc Khoa" },
+    { maSV: "KT25QT2110", tenSV: "Lê Gia An Lạc" },
+    { maSV: "KT25QT2111", tenSV: "Phạm Thị Mỹ Linh" },
+    { maSV: "KT25QT2112", tenSV: "Trương Huỳnh Như" },
+    { maSV: "KT25QT2113", tenSV: "Bùi Công Tài" },
+    { maSV: "KT25QT2114", tenSV: "Nguyễn Anh Thái" },
+    { maSV: "KT25QT2115", tenSV: "Nguyễn Thị Anh Thư" },
+    { maSV: "KT25QT2116", tenSV: "Kiều Công Thuận" },
+    { maSV: "KT25QT2117", tenSV: "Nguyễn Thị Kiều Thy" },
+    { maSV: "KT25QT2118", tenSV: "Vũ Thị Cẩm Tiên" },
+    { maSV: "KT25QT2119", tenSV: "Dương Hải Triều" },
+    { maSV: "KT25QT2120", tenSV: "Nguyễn Trung Hiếu" },
+    { maSV: "KT25QT2121", tenSV: "Trương Hoài Nam" },
+    { maSV: "KT25QT2122", tenSV: "Trương Tấn Phát" },
+    { maSV: "KT25QT2123", tenSV: "Danh Quốc Toàn" },
+    { maSV: "KT25QT2124", tenSV: "Dương Văn Tường" },
+    { maSV: "KT25QT2125", tenSV: "Huỳnh Đức" },
+    { maSV: "KT25QT2126", tenSV: "Dương Ngọc Trâm Anh" },
+    { maSV: "KT25QT2127", tenSV: "Nguyễn Trọng Phú" },
+    { maSV: "KT25QT2128", tenSV: "Trần Trúc Đào" }
+  ]
+    },
+  },
+  //=====================NÔNG NGHIỆP XÂY DỰNG==========================
+  "NÔNG NGHIỆP - XÂY DỰNG": {
+"CĐ K19": {
+  "Dịch vụ thú y": [
+    { maSV: "NX25BV2111", tenSV: "Quách Đình Thiện" },
+    { maSV: "NX25TY2101", tenSV: "Võ Ngọc Hân" },
+    { maSV: "NX25TY2102", tenSV: "Danh Khải" },
+    { maSV: "NX25TY2103", tenSV: "Huỳnh Thị Thanh Tuyền" },
+    { maSV: "NX25TY2104", tenSV: "Nguyễn Lê Trí Hào" },
+    { maSV: "NX25TY2105", tenSV: "Trần Văn Gia Huy" },
+    { maSV: "NX25TY2106", tenSV: "Vũ Bảo Ngọc" },
+    { maSV: "NX25TY2107", tenSV: "Thạch Ngô Gia Bảo" },
+    { maSV: "NX25TY2108", tenSV: "Phạm Khắc Duy" },
+    { maSV: "NX25TY2109", tenSV: "Phạm Ngọc Lễ" },
+    { maSV: "NX25TY2110", tenSV: "Lê Văn Hoá" },
+    { maSV: "NX25TY2111", tenSV: "Lê Đào Ngọc Bảo" },
+    { maSV: "NX25TY2112", tenSV: "Trương Văn Mến" },
+    { maSV: "NX25TY2113", tenSV: "Nguyễn Hoàng Minh" },
+    { maSV: "NX25TY2114", tenSV: "Trần Công Vinh" },
+    { maSV: "NX25TY2115", tenSV: "Trần Văn Thức" },
+    { maSV: "NX25TY2116", tenSV: "Lê Thị Mỹ Phượng" },
+    { maSV: "NX25TY2117", tenSV: "Thị Kim Thoa" },
+    { maSV: "NX25TY2118", tenSV: "Lương Hoàng Công Ái" },
+    { maSV: "NX25TY2119", tenSV: "Châu Văn An" },
+    { maSV: "NX25TY2120", tenSV: "Thị Kim" },
+    { maSV: "NX25TY2121", tenSV: "Nguyễn Thị Kim Như" },
+    { maSV: "NX25TY2122", tenSV: "Trần Thị Tâm Vy" },
+    { maSV: "NX25TY2123", tenSV: "Bùi Phú Tài" },
+    { maSV: "NX25TY2124", tenSV: "Nguyễn Quốc Bảo" },
+    { maSV: "NX25TY2125", tenSV: "Phạm Thị Gia Như" },
+    { maSV: "NX25TY2126", tenSV: "Nguyễn Thị Tú Nhi" },
+    { maSV: "NX25TY2127", tenSV: "Tô Phước Lộc" },
+    { maSV: "NX25TY2128", tenSV: "Lương Hoàng Huy" },
+    { maSV: "NX25TY2129", tenSV: "Huỳnh Thị Thùy Linh" },
+    { maSV: "NX25TY2130", tenSV: "Hà Nhật Hào" },
+    { maSV: "NX25TY2131", tenSV: "Trần Thị Thùy Duy" },
+    { maSV: "NX25TY2132", tenSV: "Lương Nhật Hào" },
+    { maSV: "NX25TY2133", tenSV: "Nguyễn Xuân Huy" },
+    { maSV: "NX25TY2134", tenSV: "Cao Văn Nhân" },
+    { maSV: "NX25TY2135", tenSV: "Nguyễn Thanh Toàn" },
+    { maSV: "NX25TY2136", tenSV: "Đặng Thị Mạnh Tuyết" },
+    { maSV: "NX25TY2137", tenSV: "Phạm Ngọc Hân" },
+    { maSV: "NX25TY2138", tenSV: "Lâm Bửu Tài" },
+    { maSV: "NX25TY2139", tenSV: "Lưu Kim Bảo" },
+    { maSV: "NX25TY2140", tenSV: "Lê Phi Đại" },
+    { maSV: "NX25TY2141", tenSV: "Lê Vũ Minh Thư" },
+    { maSV: "NX25TY2142", tenSV: "Nguyễn Thị Hồng Như" },
+    { maSV: "NX25TY2144", tenSV: "Huỳnh Nhựt Tài" },
+    { maSV: "NX25TY2145", tenSV: "Lê Chí Tình" },
+    { maSV: "NX25TY2146", tenSV: "Phạm Nguyễn Nam Huân" },
+    { maSV: "NX25TY2147", tenSV: "Trịnh Đức Quyền" },
+    { maSV: "NX25TY2148", tenSV: "Trịnh Phạm Tuấn Nghĩa" },
+    { maSV: "NX25TY2149", tenSV: "Hà Văn Thương" },
+    { maSV: "NX25TY2150", tenSV: "Huỳnh Văn Min" },
+    { maSV: "NX25TY2151", tenSV: "Trần Quốc Sĩ" },
+    { maSV: "NX25TY2152", tenSV: "Lê Ngọc Hân" }
+  ],
+  "Nuôi trồng thủy sản": [
+    { maSV: "CK25OT2133", tenSV: "Vũ Hồng Phúc" },
+    { maSV: "DL25HD2109", tenSV: "Trương Tuyết Minh" },
+    { maSV: "NX25TS2101", tenSV: "Lưu Ngô Mỹ Chiêu" },
+    { maSV: "NX25TS2102", tenSV: "Kha Minh Đức" },
+    { maSV: "NX25TS2103", tenSV: "Vũ Hồng Đức" },
+    { maSV: "NX25TS2104", tenSV: "Trương Minh Hào" },
+    { maSV: "NX25TS2105", tenSV: "Đỗ Thiên Hạo" },
+    { maSV: "NX25TS2106", tenSV: "Võ Văn Hiền" },
+    { maSV: "NX25TS2107", tenSV: "Ngô Chấn Hồng" },
+    { maSV: "NX25TS2108", tenSV: "Tê Quoanh Kha" },
+    { maSV: "NX25TS2109", tenSV: "Nguyễn Vĩ Khang" },
+    { maSV: "NX25TS2110", tenSV: "Mai Minh Khang" },
+    { maSV: "NX25TS2111", tenSV: "Lê Thị Thanh Ngân" },
+    { maSV: "NX25TS2112", tenSV: "Nguyễn Thị Cẩm Nhu" },
+    { maSV: "NX25TS2113", tenSV: "Trần Thị Tố Như" },
+    { maSV: "NX25TS2114", tenSV: "Lê Hoàng Nhựt" },
+    { maSV: "NX25TS2115", tenSV: "Nguyễn Hữu Phước" },
+    { maSV: "NX25TS2116", tenSV: "Nguyễn Thị Nhật Quỳnh" },
+    { maSV: "NX25TS2117", tenSV: "Nguyễn Tấn Sang" },
+    { maSV: "NX25TS2118", tenSV: "Lâm Tấn Tài" },
+    { maSV: "NX25TS2119", tenSV: "Lưu Gia Thịnh" },
+    { maSV: "NX25TS2120", tenSV: "Phan Văn Thưởng" },
+    { maSV: "NX25TS2121", tenSV: "Trần Nhựt Tiến" },
+    { maSV: "NX25TS2122", tenSV: "Lại Bá Tình" },
+    { maSV: "NX25TS2123", tenSV: "Kha Minh Tuấn" },
+    { maSV: "NX25TS2124", tenSV: "Châu Văn Tỷ" },
+    { maSV: "NX25TS2125", tenSV: "Nguyễn Vạn Tỷ" },
+    { maSV: "NX25TS2126", tenSV: "Trương Tuyết Anh" },
+    { maSV: "NX25TS2127", tenSV: "Đặng Gia Khải" },
+    { maSV: "NX25TS2128", tenSV: "Nguyễn Phạm Phương Nguyên" },
+    { maSV: "NX25TS2129", tenSV: "Nguyễn Hoàng Anh" },
+    { maSV: "NX25TS2130", tenSV: "Nguyễn Khắc Trùng Dương" },
+    { maSV: "NX25TS2131", tenSV: "Võ Minh Sang" },
+    { maSV: "NX25TS2132", tenSV: "Nguyễn Quốc Hoàng" },
+    { maSV: "NX25TS2133", tenSV: "Võ Trần Tấn Thành" },
+    { maSV: "NX25TS2134", tenSV: "Huỳnh Anh Huy" },
+    { maSV: "NX25TS2135", tenSV: "Nguyễn Minh Hiếu" },
+    { maSV: "NX25TS2136", tenSV: "Huỳnh Vỹ Khang" }
+  ],
+    "Công nghệ thực phẩm": [
+    { maSV: "NX25TP2101", tenSV: "Lê Ngọc Diểm" },
+    { maSV: "NX25TP2102", tenSV: "Danh Thị Ngọc Huệ" },
+    { maSV: "NX25TP2103", tenSV: "Vũ Tuấn Kiệt" },
+    { maSV: "NX25TP2104", tenSV: "Lý Thị Huỳnh Nga" },
+    { maSV: "NX25TP2105", tenSV: "Danh Thị Tiền Ngân" },
+    { maSV: "NX25TP2106", tenSV: "Đỗ Thúy Ngân" },
+    { maSV: "NX25TP2107", tenSV: "Quách Tâm Như" },
+    { maSV: "NX25TP2108", tenSV: "Hứa Thị Như Ý" },
+    { maSV: "NX25TP2109", tenSV: "Lê Thị Hồng Yến" },
+    { maSV: "NX25TP2110", tenSV: "Nguyễn Ngọc Yến" },
+    { maSV: "NX25TP2111", tenSV: "Nguyễn Thị Hồng Huệ" }
+  ],
+   "Bảo vệ thực vật": [
+    { maSV: "DL25HD2112", tenSV: "Thái Hoàng Sơn" },
+    { maSV: "DT25DT2208", tenSV: "Danh Lực" },
+    { maSV: "NX25BV2101", tenSV: "Lâm Thị Thùy Dung" },
+    { maSV: "NX25BV2102", tenSV: "Thạch Dương" },
+    { maSV: "NX25BV2103", tenSV: "Lý Thái Khang" },
+    { maSV: "NX25BV2104", tenSV: "Nguyễn Văn Nghệ" },
+    { maSV: "NX25BV2106", tenSV: "Tô Trần Thanh Nhã" },
+    { maSV: "NX25BV2107", tenSV: "Lê Thị Ngọc Nhi" },
+    { maSV: "NX25BV2108", tenSV: "Huỳnh Minh Phuớc" },
+    { maSV: "NX25BV2109", tenSV: "Trần Vủ Quy" },
+    { maSV: "NX25BV2110", tenSV: "Huỳnh Thiện Tạo" },
+    { maSV: "NX25BV2112", tenSV: "Lê Thị Anh Thư" },
+    { maSV: "NX25BV2113", tenSV: "Lê Đình Trụ" },
+    { maSV: "NX25BV2114", tenSV: "Huỳnh Thị Như Ý" },
+    { maSV: "NX25BV2115", tenSV: "Phan Văn Dĩ Khang" },
+    { maSV: "NX25BV2116", tenSV: "Lý Văn Hoàng" },
+    { maSV: "NX25BV2117", tenSV: "Trương Quốc Đồng" }
+  ],
+  "Kỹ thuật xây dựng": [
+    { maSV: "CK25OT2225", tenSV: "Tạ Nhựt Kha" },
+    { maSV: "XN25XD2101", tenSV: "Nguyễn Minh Đức" },
+    { maSV: "XN25XD2102", tenSV: "Đỗ Hồng Khánh" },
+    { maSV: "XN25XD2103", tenSV: "Phùng Ngọc Nam" },
+    { maSV: "XN25XD2104", tenSV: "La Thành Nghĩa" },
+    { maSV: "XN25XD2105", tenSV: "Trang Minh Nhật" },
+    { maSV: "XN25XD2106", tenSV: "Nguyễn Trọng Phúc" },
+    { maSV: "XN25XD2107", tenSV: "Đinh Trung Tấn" },
+    { maSV: "XN25XD2108", tenSV: "Phạm Đức Thiện" },
+    { maSV: "XN25XD2109", tenSV: "Đỗ Chí Toán" },
+    { maSV: "XN25XD2110", tenSV: "Trần Tấn Đường Anh Vũ" },
+    { maSV: "XN25XD2111", tenSV: "Bùi Vĩ Khang" },
+    { maSV: "XN25XD2112", tenSV: "Võ Quốc Toàn" }
+  ]
+},
+"CĐ K18": {
+ "Bảo vệ thực vật": [
+    { maSV: "NN24BV2101", tenSV: "Lâm Đà" },
+    { maSV: "NN24BV2102", tenSV: "Nguyễn Thị Đầm" },
+    { maSV: "NN24BV2103", tenSV: "Nguyễn Văn Dũng" },
+    { maSV: "NN24BV2104", tenSV: "Trương Hồng Nhung" },
+    { maSV: "NN24BV2106", tenSV: "Trần Huỳnh Sơn" },
+    { maSV: "NN24BV2107", tenSV: "Lê Hữu Thắng" },
+    { maSV: "NN24BV2109", tenSV: "Đặng Anh Thư" },
+    { maSV: "NN24BV2110", tenSV: "Danh Hoài Trọng" },
+    { maSV: "NN24BV2111", tenSV: "Nguyễn Chí Trọng" },
+    { maSV: "NN24BV2112", tenSV: "Võ Văn To" },
+    { maSV: "NN24BV2116", tenSV: "Huỳnh Văn Thái" }
+  ],
+  "Nuôi trồng thủy sản": [
+    { maSV: "NN24TS2102", tenSV: "Bùi Văn Giang" },
+    { maSV: "NN24TS2103", tenSV: "Trần Thị Ngọc Hân" },
+    { maSV: "NN24TS2104", tenSV: "Phan Quốc Hưng" },
+    { maSV: "NN24TS2107", tenSV: "Dương Trần Duy Luân" },
+    { maSV: "NN24TS2108", tenSV: "Nguyễn Ngọc Nguyên" },
+    { maSV: "NN24TS2109", tenSV: "Trương Trí Nguyện" },
+    { maSV: "NN24TS2110", tenSV: "Lý Bình Phú" },
+    { maSV: "NN24TS2114", tenSV: "Bùi Phước Huy" },
+    { maSV: "NN24TS2116", tenSV: "Nguyễn Anh Kiệt" }
+  ],
+  "Công nghệ thực phẩm": [
+    { maSV: "NN24TP2101", tenSV: "Huỳnh Thị Chi" },
+    { maSV: "NN24TP2102", tenSV: "Trần Ngọc Huỳnh" },
+    { maSV: "NN24TP2104", tenSV: "Ninh Quốc Khánh" },
+    { maSV: "NN24TP2105", tenSV: "Huỳnh Anh Kiệt" },
+    { maSV: "NN24TP2106", tenSV: "Lê Thị Diễm My" },
+    { maSV: "NN24TP2107", tenSV: "Danh Phương Nam" },
+    { maSV: "NN24TP2109", tenSV: "Phạm Thái" },
+    { maSV: "NN24TP2110", tenSV: "Thị Anh Thư" },
+    { maSV: "NN24TP2111", tenSV: "Phạm Bảo Trân" },
+    { maSV: "NN24TP2112", tenSV: "Nguyễn Thu Trang" },
+    { maSV: "NN24TP2113", tenSV: "Ngô Kim Tiên" },
+    { maSV: "NN24TP2114", tenSV: "Nguyễn Ngọc Khả Ái" }
+  ],
+  "Dịch vụ thú y": [
+    { maSV: "KNN23TY243", tenSV: "Nguyễn Hoàng Bảo Ngọc" },
+    { maSV: "NN24TY2101", tenSV: "Nguyễn Thị Trúc Anh" },
+    { maSV: "NN24TY2102", tenSV: "Trịnh Thị Giang Anh" },
+    { maSV: "NN24TY2103", tenSV: "Phan Thành Đạt" },
+    { maSV: "NN24TY2105", tenSV: "Nguyễn Thị Duyên" },
+    { maSV: "NN24TY2106", tenSV: "Từ Đình Hương Giang" },
+    { maSV: "NN24TY2107", tenSV: "Danh Thanh Giàu" },
+    { maSV: "NN24TY2108", tenSV: "Quách Gia Hân" },
+    { maSV: "NN24TY2109", tenSV: "Trịnh Bỉnh Kiệt" },
+    { maSV: "NN24TY2110", tenSV: "Phạm Văn Luốc" },
+    { maSV: "NN24TY2111", tenSV: "Nguyễn Thị Diễm My" },
+    { maSV: "NN24TY2112", tenSV: "Nguyễn Hồng My" },
+    { maSV: "NN24TY2113", tenSV: "Điền Kim Ngân" },
+    { maSV: "NN24TY2115", tenSV: "Trương Thị Quỳnh Như" },
+    { maSV: "NN24TY2116", tenSV: "Nguyễn Trọng Phú" },
+    { maSV: "NN24TY2117", tenSV: "Tô Hoàng Phúc" },
+    { maSV: "NN24TY2118", tenSV: "Võ Thị Tú Sương" },
+    { maSV: "NN24TY2119", tenSV: "Phạm Minh Thư" },
+    { maSV: "NN24TY2120", tenSV: "Phạm Thị Quỳnh Trâm" },
+    { maSV: "NN24TY2121", tenSV: "Ngô Quang Vinh" },
+    { maSV: "NN24TY2122", tenSV: "Nguyễn Phạm Thảo Vy" },
+    { maSV: "NN24TY2123", tenSV: "Phạm Lê Tường Vy" },
+    { maSV: "NN24TY2125", tenSV: "Trần Chí Kha" },
+    { maSV: "NN24TY2126", tenSV: "Lê Thành Nhân" },
+    { maSV: "NN24TY2128", tenSV: "Dư Tiền Đạt" },
+    { maSV: "NN24TY2129", tenSV: "Trần Đăng Quyền" }
+  ]
+},
+"CĐ K17": {
+    "Bảo vệ thực vật": [
+    { maSV: "KDT23DT248", tenSV: "Trần Thành Đạt" },
+    { maSV: "KNN23BV201", tenSV: "Trương Tường An" },
+    { maSV: "KNN23BV202", tenSV: "Phạm Minh Đoan" },
+    { maSV: "KNN23BV203", tenSV: "Danh Tuấn Khang" },
+    { maSV: "KNN23BV204", tenSV: "Nguyễn Thị Thuý Kiều" },
+    { maSV: "KNN23BV205", tenSV: "Nguyễn Kim Phát" },
+    { maSV: "KNN23BV206", tenSV: "Tô Minh Phát" },
+    { maSV: "KNN23BV208", tenSV: "Danh Huệ Thiện" },
+    { maSV: "KNN23BV209", tenSV: "Mai Phước Thịnh" },
+    { maSV: "KNN23BV210", tenSV: "Nguyễn Thị Trường" },
+    { maSV: "KNN23BV211", tenSV: "Danh Hoàng Vinh" },
+    { maSV: "KNN23BV213", tenSV: "Nguyễn Văn Đạt" },
+    { maSV: "KNN23BV214", tenSV: "Nguyễn Đan Trường" },
+    { maSV: "KNN23BV216", tenSV: "Trần Thị Ngọc Thơ" },
+    { maSV: "KNN23BV218", tenSV: "Nguyễn Minh Trí" }
+  ],
+  "Nuôi trồng thủy sản": [
+    { maSV: "KDT23DT212", tenSV: "Lê Thanh Hoà" },
+    { maSV: "KNN23TP207", tenSV: "Lê Thị Anh Thư" },
+    { maSV: "KNN23TS201", tenSV: "Phạm Bùi Như Bình" },
+    { maSV: "KNN23TS203", tenSV: "Nguyễn Chí Duy" },
+    { maSV: "KNN23TS206", tenSV: "Võ Thị Muội" },
+    { maSV: "KNN23TS209", tenSV: "Trần Thị Thảo" },
+    { maSV: "KNN23TS211", tenSV: "Trần Sông Trẹm" },
+    { maSV: "KNN23TS213", tenSV: "Danh Vàng" },
+    { maSV: "KNN23TS217", tenSV: "Dương Trung Nguyên" }
+  ],
+  "Kỹ thuật xây dựng": [
+    { maSV: "KXD23XD201", tenSV: "Trần Ru Bi" },
+    { maSV: "KXD23XD202", tenSV: "La Trọng Đức" },
+    { maSV: "KXD23XD204", tenSV: "Nguyễn Thanh Hên" },
+    { maSV: "KXD23XD205", tenSV: "Ngô Tuấn Khải" },
+    { maSV: "KXD23XD206", tenSV: "Trần Thanh Khải" },
+    { maSV: "KXD23XD207", tenSV: "Phạm Tấn Khang" },
+    { maSV: "KXD23XD208", tenSV: "Lê Thành Lộc" },
+    { maSV: "KXD23XD209", tenSV: "Võ Văn Tiểu Long" },
+    { maSV: "KXD23XD211", tenSV: "Dương Thạnh Phúc" },
+    { maSV: "KXD23XD212", tenSV: "Nguyễn Minh Thuận" },
+    { maSV: "KXD23XD213", tenSV: "Nguyễn Trọng Tiển" },
+    { maSV: "KXD23XD214", tenSV: "Danh Trần Phú Thịnh" },
+    { maSV: "KXD23XD215", tenSV: "Đào Nguyên Hưng" },
+    { maSV: "KXD23XD216", tenSV: "Nguyễn Chí Nguyện" },
+    { maSV: "KXD23XD218", tenSV: "Phan Trần Đăng Khoa" },
+    { maSV: "KXD23XD219", tenSV: "Nguyễn Đình Khang" }
+  ],
+  "Dịch vụ thú y": [
+    { maSV: "KNN23TS208", tenSV: "Thị Thái" },
+    { maSV: "KNN23TY202", tenSV: "Nguyễn Thị Ánh" },
+    { maSV: "KNN23TY203", tenSV: "Châu Văn Bình" },
+    { maSV: "KNN23TY204", tenSV: "Nguyễn Minh Chiệu" },
+    { maSV: "KNN23TY205", tenSV: "Thái Thị Ngọc Diệu" },
+    { maSV: "KNN23TY206", tenSV: "Nguyễn Thị Thuỳ Dương" },
+    { maSV: "KNN23TY207", tenSV: "Lê Khánh Dương" },
+    { maSV: "KNN23TY208", tenSV: "Võ Thúy Duy" },
+    { maSV: "KNN23TY209", tenSV: "Huỳnh Kim Hiền" },
+    { maSV: "KNN23TY210", tenSV: "Nguyễn Hồng Hoàng" },
+    { maSV: "KNN23TY211", tenSV: "Phạm Thị Hồng" },
+    { maSV: "KNN23TY212", tenSV: "Đỗ Duy Khang" },
+    { maSV: "KNN23TY213", tenSV: "Hà An Khang" },
+    { maSV: "KNN23TY214", tenSV: "Phạm Huy Dĩ Khang" },
+    { maSV: "KNN23TY215", tenSV: "Nguyễn Bá Khôi" },
+    { maSV: "KNN23TY216", tenSV: "Nguyễn Bích Khuê" },
+    { maSV: "KNN23TY218", tenSV: "Bùi Quốc Kiệt" },
+    { maSV: "KNN23TY219", tenSV: "Lâm Mỹ Kim" },
+    { maSV: "KNN23TY220", tenSV: "Châu Thị Cẩm Linh" },
+    { maSV: "KNN23TY221", tenSV: "Nguyễn Hữu Luân" },
+    { maSV: "KNN23TY222", tenSV: "Triệu Thanh Lượng" },
+    { maSV: "KNN23TY223", tenSV: "Nguyễn Thanh Kim Lý" },
+    { maSV: "KNN23TY224", tenSV: "Nghiêm Văn Minh" },
+    { maSV: "KNN23TY226", tenSV: "Vũ Hồng Ngọc" },
+    { maSV: "KNN23TY227", tenSV: "Nguyễn Thanh Phàm" },
+    { maSV: "KNN23TY228", tenSV: "Lê Hoàng Phúc" },
+    { maSV: "KNN23TY229", tenSV: "Huỳnh Thị Băng Tâm" },
+    { maSV: "KNN23TY230", tenSV: "Nguyễn Duy Tân" },
+    { maSV: "KNN23TY231", tenSV: "Nguyễn Hoài Thương" },
+    { maSV: "KNN23TY232", tenSV: "Nguyễn Trần Ngọc Thúy" },
+    { maSV: "KNN23TY233", tenSV: "Huỳnh Vũ Trung" },
+    { maSV: "KNN23TY237", tenSV: "Trương Tấn Vinh" },
+    { maSV: "KNN23TY238", tenSV: "Lê Thúy Vy" },
+    { maSV: "KNN23TY239", tenSV: "Lê Thị Kim Xoàn" },
+    { maSV: "KNN23TY240", tenSV: "Nguyễn Ngọc Mỹ Xuyên" },
+    { maSV: "KNN23TY242", tenSV: "Võ Huỳnh Xuân Nghi" },
+    { maSV: "KNN23TY245", tenSV: "Dương Thị Ngọc Yến" },
+    { maSV: "KNN23TY247", tenSV: "Trần Tú Trinh" },
+    { maSV: "KNN23TY250", tenSV: "Nguyễn Hồng Như Ý" }
+  ]
+},
+"CĐ9+K2":{
+      "Dịch vụ thú y": [
+    { maSV: "NN24LTTY07", tenSV: "Nguyễn Thị Khả My" },
+    { maSV: "NN24LTTY10", tenSV: "Huỳnh Như Ngọc" }
+  ]
+},
+"CĐ9+K3":{
+"Dịch vụ thú y": [
+    { maSV: "NN24LTTY05", tenSV: "Lê Gia Khiêm" },
+    { maSV: "NN24LTTY08", tenSV: "Đoàn Ngọc Mỹ" },
+    { maSV: "NN24LTTY13", tenSV: "Trần Cường Thịnh" },
+    { maSV: "NN25LTTY01", tenSV: "Trần Vân Anh" },
+    { maSV: "NN25LTTY02", tenSV: "Trần Nguyễn Thái Dương" },
+    { maSV: "NN25LTTY03", tenSV: "Dương Khánh Duy" },
+    { maSV: "NN25LTTY04", tenSV: "Đặng Thị Bảo Ngọc" },
+    { maSV: "NN25LTTY05", tenSV: "Lê Hoàng Yến Như" },
+    { maSV: "NN25LTTY07", tenSV: "Nguyễn Ngọc Hồng Tuyến" }
+  ],
+    "Kỹ thuật Xây dựng": [
+    { maSV: "NN25LTXD01", tenSV: "Nguyễn Chí Nhựt Anh" },
+    { maSV: "NN25LTXD02", tenSV: "Võ Hoài Bước" },
+    { maSV: "NN25LTXD03", tenSV: "Nguyễn Thị Hậu" },
+    { maSV: "NN25LTXD04", tenSV: "Bùi Tuấn Khang" },
+    { maSV: "NN25LTXD06", tenSV: "Lý Trọng Nhân" },
+    { maSV: "NN25LTXD07", tenSV: "Nguyễn Hoàng Phát" },
+    { maSV: "NN25LTXD08", tenSV: "Trần Nhựt Phong" },
+    { maSV: "NN25LTXD09", tenSV: "Trần Hữu Thạnh" },
+    { maSV: "NN25LTXD11", tenSV: "Nguyễn Minh Hoàng Vũ" }
+  ]
+},
+"CĐ9+K4":{
+"Chăn nuôi - Thú y": [
+      { maSV: "NN23BV3117", tenSV: "Danh Thị Thanh Tú" },
+      { maSV: "NN23TS3101", tenSV: "Mã Đạt Nguyên" },
+      { maSV: "NN23TY3102", tenSV: "Nguyễn Minh Anh" },
+      { maSV: "NN23TY3103", tenSV: "Châu Ngọc Trúc Đào" },
+      { maSV: "NN23TY3105", tenSV: "Võ Hoàng Diệu" },
+      { maSV: "NN23TY3106", tenSV: "Quách Thiên Dinh" },
+      { maSV: "NN23TY3107", tenSV: "Từ Nguyễn Phương Dung" },
+      { maSV: "NN23TY3109", tenSV: "Nguyễn Thị Thanh Hiền" },
+      { maSV: "NN23TY3111", tenSV: "Trần Gia Linh" },
+      { maSV: "NN23TY3112", tenSV: "Đặng Ánh Mi" },
+      { maSV: "NN23TY3113", tenSV: "Trần Thị Thúy Ngân" },
+      { maSV: "NN23TY3114", tenSV: "Nguyễn Thị Mộng Ngọc" },
+      { maSV: "NN23TY3119", tenSV: "Tăng Đình Quý" },
+      { maSV: "NN23TY3120", tenSV: "Huỳnh Thị Hồng Thắm" },
+      { maSV: "NN23TY3121", tenSV: "Đinh Thị Thiên Thanh" },
+      { maSV: "NN23TY3122", tenSV: "Bùi Huỳnh Thanh Thảo" },
+      { maSV: "NN23TY3124", tenSV: "Lê Thị Anh Thư" },
+      { maSV: "NN23TY3125", tenSV: "Lưu Trần Thảo Trang" },
+      { maSV: "NN23TY3128", tenSV: "Phạm Thị Thuý Vân" },
+      { maSV: "NN23TY3130", tenSV: "Lê Ngọc Như Ý" },
+      { maSV: "NN23TY3137", tenSV: "Hà Lê Quốc Anh" },
+      { maSV: "NN23TY3138", tenSV: "Bùi Thanh Du" },
+      { maSV: "TH23TH3220", tenSV: "Mai Ngô Huyền Nhi" },
+      { maSV: "TH23TH3230", tenSV: "Nguyễn Thanh Thảo" }
+    ],
+    "Trồng trọt và BVTV": [
+  { maSV: "NN23BV3101", tenSV: "Mai Ngọc Anh" },
+  { maSV: "NN23BV3102", tenSV: "Lê Kim Anh" },
+  { maSV: "NN23BV3104", tenSV: "Phan Ngọc Hân" },
+  { maSV: "NN23BV3105", tenSV: "Danh Huỳnh Hân" },
+  { maSV: "NN23BV3106", tenSV: "Lê Thị Hồng" },
+  { maSV: "NN23BV3107", tenSV: "Trương Văn Huy" },
+  { maSV: "NN23BV3108", tenSV: "Bùi Nhã Linh" },
+  { maSV: "NN23BV3109", tenSV: "Từ Mỹ Mỹ" },
+  { maSV: "NN23BV3116", tenSV: "Nguyễn Thị Kim Tiền" },
+  { maSV: "NN23BV3119", tenSV: "Nguyễn Trọng Hoàng" },
+  { maSV: "NN23BV3120", tenSV: "Nguyễn Trọng Huy" },
+  { maSV: "NN23BV3111", tenSV: "Trần Thị Mộng Nghi" }
+],
+    "Kỹ thuật xây dựng": [
+  { maSV: "CK23OT3340", tenSV: "Châu Anh Tuấn" },
+  { maSV: "TH23TH3214", tenSV: "Lê Trần An Khang" },
+  { maSV: "XD23XD3102", tenSV: "Phạm Gia Bảo" },
+  { maSV: "XD23XD3103", tenSV: "Lê Anh Bảo" },
+  { maSV: "XD23XD3104", tenSV: "Phạm Văn Cảnh" },
+  { maSV: "XD23XD3105", tenSV: "Cao Nhựt Đăng" },
+  { maSV: "XD23XD3106", tenSV: "Trần Chí Dũng" },
+  { maSV: "XD23XD3107", tenSV: "Trần Phúc Hậu" },
+  { maSV: "XD23XD3108", tenSV: "Trần Minh Kha" },
+  { maSV: "XD23XD3109", tenSV: "Nguyễn Đăng Khoa" },
+  { maSV: "XD23XD3112", tenSV: "Châu Thuận Phát" },
+  { maSV: "XD23XD3113", tenSV: "Trần Thanh Phát" },
+  { maSV: "XD23XD3116", tenSV: "Nguyễn Thành Tâm" },
+  { maSV: "XD23XD3117", tenSV: "Quách Phong Thịnh" },
+  { maSV: "XD23XD3118", tenSV: "Lê Hoàng Tuấn" },
+  { maSV: "XD23XD3120", tenSV: "Võ Thành Viễn" },
+  { maSV: "XD23XD3121", tenSV: "Danh Quốc Vũ" },
+  { maSV: "XD23XD3122", tenSV: "Võ Đức Duy" }
+]
+},
+"CĐ9+K5":{
+   "Chăn Nuôi - Thú y": [
+  { maSV: "DL24KS3128", tenSV: "Nguyễn Thị Mộng Như" },
+  { maSV: "NN24TY3101", tenSV: "Nguyễn Đoàn Kiều Anh" },
+  { maSV: "NN24TY3102", tenSV: "Lê Nguyễn Phương Anh" },
+  { maSV: "NN24TY3104", tenSV: "Lư Mai Trâm Anh" },
+  { maSV: "NN24TY3105", tenSV: "Nguyễn Thị Ngọc Ánh" },
+  { maSV: "NN24TY3107", tenSV: "Lê Thị Mỹ Duyên" },
+  { maSV: "NN24TY3108", tenSV: "Lê Thị Ái Giao" },
+  { maSV: "NN24TY3109", tenSV: "Lê Hữu Huỳnh Giao" },
+  { maSV: "NN24TY3110", tenSV: "Phan Thị Ngọc Hân" },
+  { maSV: "NN24TY3111", tenSV: "Nguyễn Nhựt Hào" },
+  { maSV: "NN24TY3113", tenSV: "Huỳnh Trí Khang" },
+  { maSV: "NN24TY3114", tenSV: "Nguyễn Chí Khang" },
+  { maSV: "NN24TY3116", tenSV: "Nguyễn Thị Trúc Li" },
+  { maSV: "NN24TY3118", tenSV: "Trần Thị Kim Loan" },
+  { maSV: "NN24TY3119", tenSV: "Nguyễn Gia Nghi" },
+  { maSV: "NN24TY3120", tenSV: "Võ Thành Nghiêm" },
+  { maSV: "NN24TY3122", tenSV: "Lê Thị Bích Như" },
+  { maSV: "NN24TY3123", tenSV: "Trần Cẩm Nhung" },
+  { maSV: "NN24TY3124", tenSV: "Huỳnh Trường Phát" },
+  { maSV: "NN24TY3125", tenSV: "Danh Ngọc Như Phụng" },
+  { maSV: "NN24TY3127", tenSV: "Danh Nguyễn Duy Tân" },
+  { maSV: "NN24TY3130", tenSV: "Trần Chí Tín" },
+  { maSV: "NN24TY3131", tenSV: "Lê Hiếu Trọng" },
+  { maSV: "NN24TY3132", tenSV: "Phạm Tú Uyên" },
+  { maSV: "NN24TY3133", tenSV: "Phạm Ái Vân" },
+  { maSV: "NN24TY3136", tenSV: "Châu Phương Vy" },
+  { maSV: "NN24TY3137", tenSV: "Nguyễn Ngọc Gia Yến" },
+  { maSV: "NN24TY3138", tenSV: "Nguyễn Ngọc Yến" },
+  { maSV: "NN24TY3139", tenSV: "Trần Huỳnh Thảo Quyên" },
+  { maSV: "NN24TY3140", tenSV: "Lâm Thy Kha" },
+  { maSV: "TH24TH3201", tenSV: "Lê Trường An" }
+],
+"Kỹ thuật xây dựng": [
+  { maSV: "XD24XD3101", tenSV: "Nguyễn Gia Bảo" },
+  { maSV: "XD24XD3117", tenSV: "Nguyễn Thanh Bình" },
+  { maSV: "XD24XD3102", tenSV: "Nguyễn Hoàng Đạt" },
+  { maSV: "XD24XD3103", tenSV: "Nguyễn Khánh Du" },
+  { maSV: "XD24XD3104", tenSV: "Trịnh Thanh Duy" },
+  { maSV: "XD24XD3105", tenSV: "Vũ Hoàng Hà" },
+  { maSV: "XD24XD3107", tenSV: "Bùi Duy Khánh" },
+  { maSV: "XD24XD3109", tenSV: "Danh Lãm" },
+  { maSV: "XD24XD3118", tenSV: "Huỳnh Ngọc Long" },
+  { maSV: "XD24XD3111", tenSV: "Phạm Hoàng Nam" },
+  { maSV: "XD24XD3112", tenSV: "Trần Thành Nghĩa" },
+  { maSV: "XD24XD3113", tenSV: "Nguyễn Tấn Phát" },
+  { maSV: "XD24XD3114", tenSV: "Từ Đình Gia Phong" },
+  { maSV: "KT24QT3127", tenSV: "Hình Minh Thuận" },
+  { maSV: "XD24XD3115", tenSV: "Lâm Minh Trí" },
+  { maSV: "XD24XD3116", tenSV: "Hình Quang Viễn" }
+]
+},
+"CĐ9+K6":{
+   "Dịch vụ thú y": [
+  { maSV: "DL25HD3119", tenSV: "Hồ Thị Kim Quyền" },
+  { maSV: "NN25TY3101", tenSV: "Nguyễn Phước Anh" },
+  { maSV: "NN25TY3102", tenSV: "Tăng Kim Cương" },
+  { maSV: "NN25TY3103", tenSV: "Huỳnh Mai Quốc Đại" },
+  { maSV: "NN25TY3104", tenSV: "Phan Tấn Dô" },
+  { maSV: "NN25TY3105", tenSV: "Hồ Thuỳ Dương" },
+  { maSV: "NN25TY3106", tenSV: "Lâm Thị Kiều Loan" },
+  { maSV: "NN25TY3107", tenSV: "Lê Phi Phụng" },
+  { maSV: "NN25TY3108", tenSV: "Trần Lan Thanh" },
+  { maSV: "NN25TY3109", tenSV: "Châu Nguyễn Gia Thảo" },
+  { maSV: "NN25TY3110", tenSV: "Nguyễn Tiến Thông" },
+  { maSV: "NN25TY3111", tenSV: "Nguyễn Huỳnh Thư" },
+  { maSV: "NN25TY3112", tenSV: "Nguyễn Hiếu Trọng" },
+  { maSV: "NN25TY3113", tenSV: "Trần Minh Tú" },
+  { maSV: "NN25TY3114", tenSV: "Lâm Thị Thanh Tuyền" },
+  { maSV: "NN25TY3115", tenSV: "Trần Huỳnh Đức" },
+  { maSV: "NN25TY3116", tenSV: "Trần Thị Hoàng Hiếu" },
+  { maSV: "NN25TY3118", tenSV: "Nguyễn Chiều Vĩ" }
+] 
+}
+
+}
+};
+
+// ================= STATE =================
+let currentLevel = "khoa";
+let history = [];
+let selected = {};
+let violationList = [];
+ // ⭐ DANH SÁCH VI PHẠM
+// ================= FUNCTIONS =================
+
+function renderButtons(list, callback) {
+  const content = document.getElementById("content");
+  content.innerHTML = "";
+  list.forEach(item => {
+    const btn = document.createElement("button");
+    btn.className = "bg-white p-4 rounded shadow hover:bg-blue-100";
+    btn.innerText = item;
+    btn.onclick = () => callback(item);
+    content.appendChild(btn);
+  });
+}
+
+function showKhoa() {
+  document.getElementById("title").innerText = "Chọn khoa";
+  renderButtons(Object.keys(data), khoa => {
+    history.push(showKhoa);
+    selected.khoa = khoa;
+    updateStatus();
+    showKhoaHoc(khoa);
+  });
+}
+
+function showKhoaHoc(khoa) {
+  document.getElementById("title").innerText = "Chọn khóa";
+  renderButtons(Object.keys(data[khoa]), khoaHoc => {
+    history.push(() => showKhoaHoc(khoa));
+    selected.khoaHoc = khoaHoc;
+    updateStatus()
+    showLop(khoa, khoaHoc);
+  });
+}
+
+function showLop(khoa, khoaHoc) {
+  document.getElementById("title").innerText = "Chọn lớp";
+  renderButtons(Object.keys(data[khoa][khoaHoc]), lop => {
+    history.push(() => showLop(khoa, khoaHoc));
+    selected.lop = lop;
+    updateStatus();
+    showSinhVien(khoa, khoaHoc, lop);
+  });
+}
+
+function showSinhVien(khoa, khoaHoc, lop) {
+  document.getElementById("title").innerText = "Danh sách sinh viên";
+
+  const content = document.getElementById("content");
+  content.innerHTML = `
+    <div class="col-span-3 mb-4 relative">
+  <input 
+    type="text"
+    id="searchSV"
+    placeholder="Tìm sinh viên..."
+    class="w-full p-2 border rounded"
+    oninput="autoCompleteSV('${khoa}', '${khoaHoc}', '${lop}')"
+  >
+
+  <div id="suggestBox"
+    class="absolute bg-white border w-full rounded shadow z-10 hidden">
+  </div>
+</div>
+  `;
+
+  renderSinhVienList(data[khoa][khoaHoc][lop]);
+}
+function renderSinhVienList(list) {
+  const content = document.getElementById("content");
+  content.querySelectorAll("button").forEach(b => b.remove());
+
+  list.forEach(sv => {
+    const btn = document.createElement("button");
+    btn.className = "bg-white p-4 rounded shadow hover:bg-blue-100 text-left";
+
+    btn.innerHTML = `
+      <div class="font-semibold">${sv.tenSV}</div>
+      <div class="text-xs text-gray-500">${sv.maSV}</div>
+    `;
+
+    btn.onclick = () => {
+      history.push(() => showSinhVien(selected.khoa, selected.khoaHoc, selected.lop));
+      selected.sv = sv;
+      showViPham();
+    };
+
+    content.appendChild(btn);
+  });
+}
+
+function showViPham() {
+  const content = document.getElementById("content");
+  document.getElementById("title").innerText = "Ghi nhận vi phạm";
+
+  content.innerHTML = `
+    <div class="bg-white p-6 rounded shadow col-span-3">
+      <p><b>Sinh viên:</b> ${selected.sv.tenSV} (${selected.sv.maSV})</p>
+
+      <div class="mt-4">
+        <label>
+          <input type="checkbox" class="vipham" value="Đi trễ"> Đi trễ
+        </label><br>
+
+        <label>
+          <input type="checkbox" class="vipham" value="Hút thuốc"> Hút thuốc
+        </label><br>
+
+        <label>
+          <input type="checkbox" class="vipham" value="Mang dép"> Mang dép
+        </label><br>
+
+         <label>
+          <input type="checkbox" class="vipham" value="Sai đồng phục"> Sai đồng phục
+        </label><br>
+
+           <label>
+          <input type="checkbox" class="vipham" value="Không thẻ sinh viên"> Không thẻ sinh viên
+        </label><br>
+
+        <label>
+          <input type="checkbox" id="viphamKhac" onchange="toggleOtherViolation()"> Khác
+        </label>
+
+        <input
+          type="text"
+          id="otherViolation"
+          placeholder="Nhập lỗi vi phạm khác..."
+          class="border p-2 mt-2 w-full"
+          style="display:none;"
+        >
+      </div>
+
+      <div class="mt-4">
+        <input type="date" id="date" class="border p-2">
+        <select id="buoi" class="border p-2">
+          <option>Sáng</option>
+          <option>Chiều</option>
+        </select>
+      </div>
+
+      <button onclick="addViolation()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded">
+        Thêm vào danh sách vi phạm
+      </button>
+    </div>
+  `;
+}
+
+function toggleOtherViolation() {
+  const checkbox = document.getElementById("viphamKhac");
+  const input = document.getElementById("otherViolation");
+
+  if (checkbox.checked) {
+    input.style.display = "block";
+    input.focus();
+  } else {
+    input.style.display = "none";
+    input.value = "";
+  }
+}
+
+// ================= ADD VIOLATION =================
+function addViolation() {
+  const date = document.getElementById("date").value;
+  const buoi = document.getElementById("buoi").value;
+
+  if (!date) {
+    alert("Vui lòng chọn ngày!");
+    return;
+  }
+
+  let violations = [];
+
+  // 1. Lỗi có sẵn
+  document.querySelectorAll(".vipham:checked").forEach(cb => {
+    violations.push(cb.value);
+  });
+
+  // 2. Lỗi khác
+  const otherCheckbox = document.getElementById("viphamKhac");
+  const otherInput = document.getElementById("otherViolation");
+
+  if (otherCheckbox.checked) {
+    if (otherInput.value.trim() === "") {
+      alert("Vui lòng nhập lỗi vi phạm khác!");
+      return;
+    }
+    violations.push(otherInput.value.trim());
+  }
+
+  if (violations.length === 0) {
+    alert("Chưa chọn lỗi vi phạm!");
+    return;
+  }
+  // 3. Thêm vào danh sách
+  violationList.push({
+    "Mã SV": selected.sv.maSV,
+    "Họ tên": selected.sv.tenSV,
+    "Lớp": selected.lop,
+    "Khóa": selected.khoaHoc,
+    "Khoa": selected.khoa,
+    "Ngày": date,
+    "Buổi": buoi.toUpperCase().replace("Á", "A").replace("Ề", "E"), // SANG / CHIEU
+    "Vi phạm": violations.join(", ")
+  });
+
+  saveData();
+  renderViolationTable();
+
+  alert("Đã thêm vào danh sách vi phạm");
+}
+
+
+// ================= EXPORT =================
+async function exportExcel() {
+  if (violationList.length === 0) {
+    alert("Chưa có dữ liệu!");
+    return;
+  }
+
+  if (!confirm("Gửi dữ liệu lên hệ thống chung?")) return;
+
+  await window.sendViolations(violationList);
+
+  violationList = [];
+  saveData();
+  renderViolationTable();
+
+}
+
+
+function goToDanhSach() {
+  window.location.href = "danhsach.html";
+}
+
+function goBack() {
+  if (history.length > 0) {
+    history.pop()();
+  }
+}
+// KHI OUT RA VẪN CÒN DỮ LIỆU
+function saveData() {
+  localStorage.setItem("violationList", JSON.stringify(violationList));
+}
+
+function loadData() {
+  const dataSaved = localStorage.getItem("violationList");
+  if (dataSaved) {
+    violationList = JSON.parse(dataSaved);
+    renderViolationTable();
+  }
+}
+//AUTOCOMPLETE
+function autoCompleteSV(khoa, khoaHoc, lop) {
+  const keyword = document.getElementById("searchSV").value.toLowerCase();
+  const box = document.getElementById("suggestBox");
+
+  if (!keyword) {
+    box.classList.add("hidden");
+    return;
+  }
+
+  const list = data[khoa][khoaHoc][lop].filter(sv =>
+    sv.tenSV.toLowerCase().includes(keyword) ||
+    sv.maSV.toLowerCase().includes(keyword)
+  );
+
+  box.innerHTML = "";
+  box.classList.remove("hidden");
+
+  list.forEach(sv => {
+    const div = document.createElement("div");
+    div.className = "p-2 hover:bg-blue-100 cursor-pointer";
+
+    div.innerHTML = `
+      <div class="font-medium">${sv.tenSV}</div>
+      <div class="text-xs text-gray-500">${sv.maSV}</div>
+    `;
+
+    div.onclick = () => {
+      document.getElementById("searchSV").value = `${sv.tenSV} (${sv.maSV})`;
+      box.classList.add("hidden");
+
+      history.push(() => showSinhVien(khoa, khoaHoc, lop));
+      selected.sv = sv;
+      showViPham();
+    };
+
+    box.appendChild(div);
+  });
+}
+//==================================TÌM KIẾM==============================================
+function getAllSinhVien() {
+  const result = [];
+
+  for (const khoa in data) {
+    for (const khoaHoc in data[khoa]) {
+      for (const lop in data[khoa][khoaHoc]) {
+        data[khoa][khoaHoc][lop].forEach(sv => {
+          result.push({
+            ...sv,
+            khoa,
+            khoaHoc,
+            lop
+          });
+        });
+      }
+    }
+  }
+
+  return result;
+}
+function globalSearchSV() {
+  const keyword = document
+    .getElementById("globalSearch")
+    .value
+    .toLowerCase();
+
+  const box = document.getElementById("globalResult");
+
+  if (!keyword) {
+    box.classList.add("hidden");
+    return;
+  }
+
+  const allSV = getAllSinhVien();
+
+  const matched = allSV.filter(sv =>
+    sv.tenSV.toLowerCase().includes(keyword) ||
+    sv.maSV.toLowerCase().includes(keyword)
+  );
+
+  box.innerHTML = "";
+
+  if (matched.length === 0) {
+    box.innerHTML = `<div class="p-2 text-gray-500">Không tìm thấy</div>`;
+    box.classList.remove("hidden");
+    return;
+  }
+
+  matched.forEach(sv => {
+    const div = document.createElement("div");
+    div.className = "p-2 hover:bg-blue-100 cursor-pointer";
+
+    div.innerHTML = `
+      <div class="font-medium">${sv.tenSV}</div>
+      <div class="text-xs text-gray-500">
+        ${sv.maSV} — ${sv.lop} — ${sv.khoaHoc}
+      </div>
+    `;
+
+    div.onclick = () => {
+  box.classList.add("hidden");
+  document.getElementById("globalSearch").value = "";
+
+  // RESET HISTORY (rất quan trọng)
+  history = [];
+
+  // PUSH LẠI ĐẦY ĐỦ LUỒNG
+  history.push(showKhoa);
+  history.push(() => showKhoaHoc(sv.khoa));
+  history.push(() => showLop(sv.khoa, sv.khoaHoc));
+  history.push(() => showSinhVien(sv.khoa, sv.khoaHoc, sv.lop));
+
+  // SET STATE
+  selected.khoa = sv.khoa;
+  selected.khoaHoc = sv.khoaHoc;
+  selected.lop = sv.lop;
+  selected.sv = { tenSV: sv.tenSV, maSV: sv.maSV };
+
+  updateStatus();
+  showViPham();
+};
+
+
+    box.appendChild(div);
+  });
+
+  box.classList.remove("hidden");
+}
+
+// START
+showKhoa();
+loadData();
+</script>
+<script type="module">
+  import { sendViolations } from "./sendfirebase.js";
+  window.sendViolations = sendViolations;
+</script>
+<link rel="stylesheet" href="style.css">
+</body>
+</html>
